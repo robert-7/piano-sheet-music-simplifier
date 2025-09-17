@@ -66,6 +66,13 @@ sudo snap install musescore
 snap list musescore
 ```
 
+We need to set up our `.env` file with the required API keys.
+
+```shell
+cp .env.template .env
+sed -i 's/OPENAI_API_KEY=.*/OPENAI_API_KEY=INSERT_KEY_HERE/g' .env
+```
+
 ### Recurring
 
 To deactivate or reactivate your virtual environment, simply run:

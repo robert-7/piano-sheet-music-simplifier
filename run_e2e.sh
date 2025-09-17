@@ -51,14 +51,18 @@ echo "✅ PDF to MusicXML conversion complete."
 echo "↪⏳ Validating MusicXML file was created..."
 MUSICXML_OUTPUT_MXL="${OUTPUT_DIR}/${BASENAME}.mxl"
 MUSICXML_OUTPUT_MUSICXML="${OUTPUT_DIR}/${BASENAME}.musicxml"
+MUSICXML_OUTPUT_XML="${OUTPUT_DIR}/${BASENAME}.xml"
 if [ -f "$MUSICXML_OUTPUT_MXL" ]; then
     MUSICXML_FILE="$MUSICXML_OUTPUT_MXL"
 elif [ -f "$MUSICXML_OUTPUT_MUSICXML" ]; then
     MUSICXML_FILE="$MUSICXML_OUTPUT_MUSICXML"
+elif [ -f "$MUSICXML_OUTPUT_XML" ]; then
+    MUSICXML_FILE="$MUSICXML_OUTPUT_XML"
 else
     echo "↪❌ Error: Could not find the generated MusicXML file." >&2
     echo "Looked for: $MUSICXML_OUTPUT_MXL" >&2
     echo "And: $MUSICXML_OUTPUT_MUSICXML" >&2
+    echo "And: $MUSICXML_OUTPUT_XML" >&2
     exit 1
 fi
 echo "↪✅ Found MusicXML file: $MUSICXML_FILE"

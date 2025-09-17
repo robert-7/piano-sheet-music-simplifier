@@ -7,6 +7,7 @@ from pathlib import Path
 from src.commands import analyze_musicxml
 from src.commands import convert_musicxml_to_pdf
 from src.commands import convert_pdf_to_musicxml
+from src.commands import generate_simplified_musicxml
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,10 @@ def build_parser() -> argparse.ArgumentParser:
     # --- Sub-parser for analyze_musicxml ---
     analyze_parser = subparsers.add_parser("analyze_musicxml", help="Perform harmony analysis on a MusicXML file.")
     analyze_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
+
+    # --- Sub-parser for generate_simplified_musicxml ---
+    analyze_parser = subparsers.add_parser("generate_simplified_musicxml", help="Generate a simplified version of the piece in a given MusicXML file (as a MusicXML file).")
+    analyze_parser.add_argument("musicxml_path", help="Path to the original MusicXML or MXL file")
 
     # --- Sub-parser for convert_musicxml_to_pdf ---
     convert_parser = subparsers.add_parser("convert_musicxml_to_pdf", help="Convert a MusicXML file to PDF.")
@@ -56,6 +61,9 @@ def main():
 
     elif args.command == "analyze_musicxml":
         analyze_musicxml.analyze_musicxml(args.musicxml_path)
+
+    elif args.command == "generate_simplified_musicxml":
+        generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path)
 
     elif args.command == "convert_musicxml_to_pdf":
         convert_musicxml_to_pdf.convert_musicxml_to_pdf(args.musicxml_path, args.overwrite)
