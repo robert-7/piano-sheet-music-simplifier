@@ -110,7 +110,8 @@ def convert_musicxml_to_pdfs(musicxml_path: str, *, overwrite: bool = False) -> 
     return results
 
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
+    """Build the command-line argument parser."""
     parser = argparse.ArgumentParser(description="Process sheet music files: analyze harmony, convert to PDF, or process PDFs.")
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
 
@@ -133,6 +134,11 @@ def main():
     convert_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
     convert_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing PDF files.")
 
+    return parser
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -145,10 +151,10 @@ def main():
             dpi=args.dpi,
             audiveris_path=args.audiveris,
         )
-        logger.info(f"\nAudiveris outputs ({len(result.outputs)}):")
+        logger.info(f"Audiveris outputs ({len(result.outputs)}):")
         for p in result.outputs:
             logger.info(f"  {p}")
-        logger.info(f"\nLog: {result.log_path}")
+        logger.info(f"Log: {result.log_path}")
 
     elif args.command == "analyze_musicxml":
         score = score_utils.load_score(args.musicxml_path)
