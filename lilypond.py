@@ -2,10 +2,10 @@ import logging
 import shutil
 from pathlib import Path
 
-from music21 import converter
 from music21 import environment
 
 import build_utils
+import score_utils
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def convert_musicxml_to_pdf(musicxml_path: str, *, overwrite: bool = False) -> P
 
     if build_utils.needs_build(src, dst, overwrite=overwrite):
         logger.info(f"Converting {src} to {dst} with LilyPond...")
-        score = converter.parse(str(src))
+        score = score_utils.load_score(str(src))
         score.write("lily.pdf", fp=str(dst))
     else:
         logger.info(f"Skipping {dst}, already up to date.")

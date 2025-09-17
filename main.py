@@ -7,24 +7,14 @@ from pathlib import Path
 from typing import Dict
 from typing import List
 
-from music21 import converter
 from music21 import roman
 from music21 import stream
 
 import lilypond
 import musescore
+import score_utils
 
 logger = logging.getLogger(__name__)
-
-
-def load_score(path: str) -> stream.Score:
-    """Load a MusicXML score from the given path, raising if not found or invalid."""
-    try:
-        score = converter.parse(path)
-        logger.info(f"Loaded score from '{path}' with {len(score.parts)} parts.")
-        return score
-    except Exception as e:
-        raise Exception(f"Failed to load score from '{path}': {e}")
 
 @dataclass
 class HarmonyAnalysis:
@@ -116,17 +106,25 @@ def convert_musicxml_to_pdfs(musicxml_path: str, *, overwrite: bool = False) -> 
     return results
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Convert MusicXML to PDF using LilyPond and MuseScore.")
+    parser = argparse.ArgumentParser(description="Process MusicXML files: analyze harmony and/or convert to PDF.")
     parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing PDF files")
+    parser.add_argument("--analyze", action="store_true", help="Perform harmony analysis.")
+    parser.add_argument("--convert", action="store_true", help="Convert to PDF using available backends.")
+    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing PDF files if converting.")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    score = load_score(args.musicxml_path)
-    analysis = analyze_harmony(score)
-    logger.info(analysis)
+    if not args.analyze and not args.convert:
+        logger.warning("Neither --analyze nor --convert specified. Nothing to do.")
+        exit(0)
 
-    outputs = convert_musicxml_to_pdfs(args.musicxml_path, overwrite=args.overwrite)
-    for backend, path in outputs.items():
-        logger.info(f"✅ The PDF can be found in: {backend} → {path}")
+    if args.analyze:
+        score = score_utils.load_score(args.musicxml_path)
+        analysis = analyze_harmony(score)
+        logger.info(analysis)
+
+    if args.convert:
+        outputs = convert_musicxml_to_pdfs(args.musicxml_path, overwrite=args.overwrite)
+        for backend, path in outputs.items():
+            logger.info(f"✅ The PDF can be found in: {backend} → {path}")
