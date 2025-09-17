@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import shutil
 from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path
@@ -8,60 +7,14 @@ from typing import Dict
 from typing import List
 
 from music21 import converter
-from music21 import environment
 from music21 import roman
 from music21 import stream
 
+import lilypond
+import musescore
+
 BACKEND_LILYPOND = "LilyPond"
 BACKEND_MUSESCORE = "MuseScore"
-
-def _detect_lilypond() -> str | None:
-    """
-    Detect the LilyPond executable on the system.
-
-    Returns:
-        str | None: The path to the LilyPond executable if found, otherwise None.
-    """
-    p = shutil.which("lilypond")
-    if p:
-        return p
-    # common fallback on Ubuntu
-    if Path("/usr/bin/lilypond").exists():
-        return "/usr/bin/lilypond"
-    return None
-
-def _detect_musescore() -> str | None:
-    """
-    Detect the MuseScore executable on the system, preferring a Flatpak wrapper if present.
-
-    Returns:
-        str | None: The path to the MuseScore executable if found, otherwise None.
-    """
-    # Prefer your Flatpak wrapper if you created it:
-    wrapper = Path("/usr/local/bin/musescore")
-    if wrapper.exists():
-        return str(wrapper)
-    # Otherwise, try native binaries
-    for name in ("musescore", "mscore", "musescore3"):
-        p = shutil.which(name)
-        if p:
-            return p
-    return None
-
-def _needs_build(src: Path, dst: Path, overwrite: bool) -> bool:
-    """
-    Determine if a destination file needs to be rebuilt based on its existence,
-    modification time, or an explicit overwrite flag.
-
-    Args:
-        src (Path): The source file path.
-        dst (Path): The destination file path.
-        overwrite (bool): Whether to force rebuilding the destination file.
-
-    Returns:
-        bool: True if the destination file needs to be rebuilt, False otherwise.
-    """
-    return overwrite or (not dst.exists()) or (dst.stat().st_mtime < src.stat().st_mtime)
 
 def load_score(path: str) -> stream.Score:
     """Load a MusicXML score from the given path, raising if not found or invalid."""
@@ -136,41 +89,18 @@ def convert_musicxml_to_pdfs(musicxml_path: str, *, overwrite: bool = False) -> 
     Returns: dict { 'LilyPond': Path, 'MuseScore': Path } for the backends that succeeded.
     Raises:  FileNotFoundError if input doesn't exist; RuntimeError if no backend could produce a PDF.
     """
-    src = Path(musicxml_path).resolve()
-    if not src.exists():
-        raise FileNotFoundError(src)
-
-    out_dir, stem = src.parent, src.stem
     results: Dict[str, Path] = {}
     errors: Dict[str, Exception] = {}
-    us = environment.UserSettings()
 
-    # --- LilyPond ---
-    lily = _detect_lilypond()
-    if lily:
-        try:
-            us["lilypondPath"] = lily
-            dst = out_dir / f"{stem}.LilyPond.pdf"
-            if _needs_build(src, dst, overwrite):
-                score = converter.parse(str(src))
-                score.write("lily.pdf", fp=str(dst))
-            results[BACKEND_LILYPOND] = dst
-        except Exception as e:
-            errors[BACKEND_LILYPOND] = e
+    try:
+        results[BACKEND_LILYPOND] = lilypond.convert_musicxml_to_pdf(musicxml_path, overwrite=overwrite)
+    except (FileNotFoundError, RuntimeError) as e:
+        errors[BACKEND_LILYPOND] = e
 
-    # --- MuseScore (MusicXML backend) ---
-    mscore = _detect_musescore()
-    if mscore:
-        try:
-            us["musicxmlPath"] = mscore
-            us['musescoreDirectPNGPath'] = mscore
-            dst = out_dir / f"{stem}.MuseScore.pdf"
-            if _needs_build(src, dst, overwrite):
-                score = converter.parse(str(src))
-                score.write("musicxml.pdf", fp=str(dst))
-            results[BACKEND_MUSESCORE] = dst
-        except Exception as e:
-            errors[BACKEND_MUSESCORE] = e
+    try:
+        results[BACKEND_MUSESCORE] = musescore.convert_musicxml_to_pdf(musicxml_path, overwrite=overwrite)
+    except (FileNotFoundError, RuntimeError) as e:
+        errors[BACKEND_MUSESCORE] = e
 
     if not results:
         msg = ["Could not generate a PDF with LilyPond or MuseScore."]
