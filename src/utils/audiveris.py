@@ -6,8 +6,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from src import fs_utils
-from src import image_utils
+from src.utils import fs_utils
+from src.utils import image_utils
 
 
 def which_exe(candidates: list[str]) -> str | None:

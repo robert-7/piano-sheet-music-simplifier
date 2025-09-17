@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src import fs_utils
+from src.utils import fs_utils
 
 
 def pdf_to_images(pdf_path: Path, out_dir: Path, dpi: int = 400) -> list[Path]:
