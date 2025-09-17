@@ -33,12 +33,17 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Install Java as a prerequisite for installing Audiveris.
+NOTE: This may not be required anymore as of Audiveris 5.5. Need to validate.
+
 ```shell
 sudo apt update
 apt search openjdk | grep -E "openjdk-[0-9]+-jdk"
 sudo apt install openjdk-17-jdk -y
 java -version
 ```
+
+Install Audiveris to generate .musicxml files from a PDF sheet music.
 
 ```shell
 # https://github.com/Audiveris/audiveris/releases/tag/5.7.1
@@ -49,6 +54,8 @@ wget -O "${_download_dir}/${_file}" "https://github.com/Audiveris/audiveris/rele
 sudo apt install "${_download_dir}/${_file}"
 sudo ln -s /opt/audiveris/bin/Audiveris /usr/local/bin/audiveris
 ```
+
+Install Lilypond and Musescore to generate PDF sheet music based on .musicxml files.
 
 ```shell
 sudo apt install -y lilypond
