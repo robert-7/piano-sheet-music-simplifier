@@ -10,9 +10,9 @@ from typing import List
 from music21 import roman
 from music21 import stream
 
-import lilypond
-import musescore
-import score_utils
+from src import lilypond
+from src import musescore
+from src import score_utils
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ def convert_musicxml_to_pdfs(musicxml_path: str, *, overwrite: bool = False) -> 
 
     return results
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Process MusicXML files: analyze harmony and/or convert to PDF.")
     parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
     parser.add_argument("--analyze", action="store_true", help="Perform harmony analysis.")
@@ -128,3 +128,6 @@ if __name__ == "__main__":
         outputs = convert_musicxml_to_pdfs(args.musicxml_path, overwrite=args.overwrite)
         for backend, path in outputs.items():
             logger.info(f"✅ The PDF can be found in: {backend} → {path}")
+
+if __name__ == "__main__":
+    main()
