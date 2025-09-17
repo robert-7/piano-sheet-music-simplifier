@@ -1,0 +1,62 @@
+import shutil
+from pathlib import Path
+
+from music21 import converter
+from music21 import environment
+
+def _detect_lilypond() -> str | None:
+    """
+    Detect the LilyPond executable on the system.
+
+    Returns:
+        str | None: The path to the LilyPond executable if found, otherwise None.
+    """
+    p = shutil.which("lilypond")
+    if p:
+        return p
+    # common fallback on Ubuntu
+    if Path("/usr/bin/lilypond").exists():
+        return "/usr/bin/lilypond"
+    return None
+
+def _needs_build(src: Path, dst: Path, overwrite: bool) -> bool:
+    """
+    Determine if a destination file needs to be rebuilt based on its existence,
+    modification time, or an explicit overwrite flag.
+
+    Args:
+        src (Path): The source file path.
+        dst (Path): The destination file path.
+        overwrite (bool): Whether to force rebuilding the destination file.
+
+    Returns:
+        bool: True if the destination file needs to be rebuilt, False otherwise.
+    """
+    return overwrite or (not dst.exists()) or (dst.stat().st_mtime < src.stat().st_mtime)
+
+def convert_musicxml_to_pdf(musicxml_path: str, *, overwrite: bool = False) -> Path:
+    """
+    Render a MusicXML/MXL file to PDF with LilyPond.
+    Output file is <stem>.LilyPond.pdf in the same directory.
+
+    Returns: Path to the generated PDF.
+    Raises:  FileNotFoundError if input doesn't exist; RuntimeError if LilyPond fails.
+    """
+    src = Path(musicxml_path).resolve()
+    if not src.exists():
+        raise FileNotFoundError(src)
+
+    lily = _detect_lilypond()
+    if not lily:
+        raise RuntimeError("LilyPond executable not found.")
+
+    out_dir, stem = src.parent, src.stem
+    us = environment.UserSettings()
+    us["lilypondPath"] = lily
+    dst = out_dir / f"{stem}.LilyPond.pdf"
+
+    if _needs_build(src, dst, overwrite):
+        score = converter.parse(str(src))
+        score.write("lily.pdf", fp=str(dst))
+
+    return dst
