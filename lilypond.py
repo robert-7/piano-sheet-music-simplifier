@@ -1,8 +1,14 @@
+import logging
 import shutil
 from pathlib import Path
 
 from music21 import converter
 from music21 import environment
+
+import build_utils
+
+logger = logging.getLogger(__name__)
+
 
 def _detect_lilypond() -> str | None:
     """
@@ -13,26 +19,14 @@ def _detect_lilypond() -> str | None:
     """
     p = shutil.which("lilypond")
     if p:
+        logger.info(f"Found lilypond at: {p}")
         return p
     # common fallback on Ubuntu
     if Path("/usr/bin/lilypond").exists():
+        logger.info("Found lilypond at: /usr/bin/lilypond")
         return "/usr/bin/lilypond"
+    logger.warning("Could not find lilypond executable.")
     return None
-
-def _needs_build(src: Path, dst: Path, overwrite: bool) -> bool:
-    """
-    Determine if a destination file needs to be rebuilt based on its existence,
-    modification time, or an explicit overwrite flag.
-
-    Args:
-        src (Path): The source file path.
-        dst (Path): The destination file path.
-        overwrite (bool): Whether to force rebuilding the destination file.
-
-    Returns:
-        bool: True if the destination file needs to be rebuilt, False otherwise.
-    """
-    return overwrite or (not dst.exists()) or (dst.stat().st_mtime < src.stat().st_mtime)
 
 def convert_musicxml_to_pdf(musicxml_path: str, *, overwrite: bool = False) -> Path:
     """
@@ -55,8 +49,11 @@ def convert_musicxml_to_pdf(musicxml_path: str, *, overwrite: bool = False) -> P
     us["lilypondPath"] = lily
     dst = out_dir / f"{stem}.LilyPond.pdf"
 
-    if _needs_build(src, dst, overwrite):
+    if build_utils.needs_build(src, dst, overwrite=overwrite):
+        logger.info(f"Converting {src} to {dst} with LilyPond...")
         score = converter.parse(str(src))
         score.write("lily.pdf", fp=str(dst))
+    else:
+        logger.info(f"Skipping {dst}, already up to date.")
 
     return dst
