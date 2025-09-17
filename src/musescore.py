@@ -4,8 +4,8 @@ from pathlib import Path
 
 from music21 import environment
 
-import build_utils
-import score_utils
+from src import build_utils
+from src import score_utils
 
 logger = logging.getLogger(__name__)
 

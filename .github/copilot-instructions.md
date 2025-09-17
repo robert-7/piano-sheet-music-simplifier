@@ -5,7 +5,7 @@
 - **Key Directories:**
   - `user/input/`: Source music files (MusicXML, PDF, etc.)
   - `user/output-*`: Output directories for processed results
-  - `main.py`, `main2.py`: Main entry points for running music processing tasks
+  - `main.py`: Main entry point for running music processing tasks via sub-commands.
 
 ## Environment Setup
 - Use Python 3.10+ and Ubuntu (see `README.md` for full setup commands)
@@ -17,11 +17,11 @@
 ## Developer Workflows
 - **Typical run:**
   - Place input files in `user/input/`
-  - Run `main.py` or `main2.py` to process files
-  - Outputs are written to `user/output-YYYY-MM-DD/` directories
+  - Run `main.py` with a sub-command (e.g., `convert_pdf_to_musicxml`) to process files.
+  - Outputs are written to `user/output-YYYY-MM-DD/` directories.
 - **Adding new processing logic:**
   - Add new scripts or modules in the root or under `user/`
-  - Follow the pattern in `main.py` for file discovery and output
+  - Add a new sub-command to `main.py` to expose the functionality.
 - **Testing:**
   - No formal test suite; validate by running scripts on sample files
 
@@ -36,10 +36,12 @@
 - MusicXML, PDF, and MIDI files are the primary data formats
 
 ## Examples
-- To process a new MusicXML file:
-  1. Place it in `user/input/`
-  2. Run: `python main.py`
-  3. Check results in the latest `user/output-YYYY-MM-DD/` directory
+- To convert a PDF to MusicXML:
+  - `python main.py convert_pdf_to_musicxml user/input/your_file.pdf`
+- To analyze a MusicXML file:
+  - `python main.py analyze_musicxml user/input/your_file.musicxml`
+- To convert a MusicXML file to PDF:
+  - `python main.py convert_musicxml_to_pdf user/input/your_file.musicxml`
 
 ## References
 - See `README.md` for full setup and tool installation

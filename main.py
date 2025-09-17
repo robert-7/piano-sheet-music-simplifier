@@ -3,6 +3,7 @@ import argparse
 import logging
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import datetime
 from pathlib import Path
 from typing import Dict
 from typing import List
@@ -10,11 +11,13 @@ from typing import List
 from music21 import roman
 from music21 import stream
 
-import lilypond
-import musescore
-import score_utils
+from src import audiveris
+from src import lilypond
+from src import musescore
+from src import score_utils
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class HarmonyAnalysis:
@@ -72,6 +75,7 @@ def analyze_harmony(score: stream.Stream,
     analysis.pitch_classes = sorted(pitch_classes)
     return analysis
 
+
 def convert_musicxml_to_pdfs(musicxml_path: str, *, overwrite: bool = False) -> Dict[str, Path]:
     """
     Render a MusicXML/MXL file to PDF with both LilyPond and MuseScore (when available).
@@ -105,26 +109,63 @@ def convert_musicxml_to_pdfs(musicxml_path: str, *, overwrite: bool = False) -> 
 
     return results
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process MusicXML files: analyze harmony and/or convert to PDF.")
-    parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
-    parser.add_argument("--analyze", action="store_true", help="Perform harmony analysis.")
-    parser.add_argument("--convert", action="store_true", help="Convert to PDF using available backends.")
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing PDF files if converting.")
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the command-line argument parser."""
+    parser = argparse.ArgumentParser(description="Process sheet music files: analyze harmony, convert to PDF, or process PDFs.")
+    subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
+
+    # --- Sub-parser for convert_pdf_to_musicxml ---
+    pdf_parser = subparsers.add_parser("convert_pdf_to_musicxml", help="Convert a PDF to MusicXML using Audiveris.")
+    pdf_parser.add_argument("pdf_path", type=Path, help="Path to the input PDF")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    default_out_dir = Path(f"./user/output-{timestamp}")
+    pdf_parser.add_argument("--out", type=Path, default=default_out_dir, help="Output directory")
+    pdf_parser.add_argument("--no-rasterize", action="store_true", help="Let Audiveris read the PDF directly")
+    pdf_parser.add_argument("--dpi", type=int, default=400, help="DPI for rasterization")
+    pdf_parser.add_argument("--audiveris", type=str, default=None, help="Path to audiveris executable")
+
+    # --- Sub-parser for analyze_musicxml ---
+    analyze_parser = subparsers.add_parser("analyze_musicxml", help="Perform harmony analysis on a MusicXML file.")
+    analyze_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
+
+    # --- Sub-parser for convert_musicxml_to_pdf ---
+    convert_parser = subparsers.add_parser("convert_musicxml_to_pdf", help="Convert a MusicXML file to PDF.")
+    convert_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
+    convert_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing PDF files.")
+
+    return parser
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    if not args.analyze and not args.convert:
-        logger.warning("Neither --analyze nor --convert specified. Nothing to do.")
-        exit(0)
+    if args.command == "convert_pdf_to_musicxml":
+        result = audiveris.convert_pdf_to_musicxml(
+            pdf_path=args.pdf_path,
+            out_dir=args.out,
+            prefer_rasterize=not args.no_rasterize,
+            dpi=args.dpi,
+            audiveris_path=args.audiveris,
+        )
+        logger.info(f"Audiveris outputs ({len(result.outputs)}):")
+        for p in result.outputs:
+            logger.info(f"  {p}")
+        logger.info(f"Log: {result.log_path}")
 
-    if args.analyze:
+    elif args.command == "analyze_musicxml":
         score = score_utils.load_score(args.musicxml_path)
         analysis = analyze_harmony(score)
         logger.info(analysis)
 
-    if args.convert:
+    elif args.command == "convert_musicxml_to_pdf":
         outputs = convert_musicxml_to_pdfs(args.musicxml_path, overwrite=args.overwrite)
         for backend, path in outputs.items():
             logger.info(f"✅ The PDF can be found in: {backend} → {path}")
+
+
+if __name__ == "__main__":
+    main()
