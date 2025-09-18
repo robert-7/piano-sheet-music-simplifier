@@ -75,7 +75,7 @@ def analyze_harmony(
     return analysis
 
 
-def analyze_musicxml(musicxml_path: str):
+def generate_legacy_analysis_of_musicxml(musicxml_path: str):
     score = score_utils.load_score(musicxml_path)
     analysis = analyze_harmony(score)
     logger.info(analysis)

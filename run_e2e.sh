@@ -42,7 +42,7 @@ echo
 
 # 2. Convert the source PDF to a MusicXML file.
 echo "⏳ Step 1/3: Converting PDF to MusicXML..."
-./main.py convert_pdf_to_musicxml --out "${OUTPUT_DIR}" "${INPUT_PDF}" >> "${LOG_FILE}" 2>&1
+./main.py convert_pdf_to_musicxml --out-dir "${OUTPUT_DIR}" "${INPUT_PDF}" >> "${LOG_FILE}" 2>&1
 echo "✅ PDF to MusicXML conversion complete."
 
 # The expected path for the generated MusicXML file.
@@ -51,14 +51,18 @@ echo "✅ PDF to MusicXML conversion complete."
 echo "↪⏳ Validating MusicXML file was created..."
 MUSICXML_OUTPUT_MXL="${OUTPUT_DIR}/${BASENAME}.mxl"
 MUSICXML_OUTPUT_MUSICXML="${OUTPUT_DIR}/${BASENAME}.musicxml"
+MUSICXML_OUTPUT_XML="${OUTPUT_DIR}/${BASENAME}.xml"
 if [ -f "$MUSICXML_OUTPUT_MXL" ]; then
     MUSICXML_FILE="$MUSICXML_OUTPUT_MXL"
 elif [ -f "$MUSICXML_OUTPUT_MUSICXML" ]; then
     MUSICXML_FILE="$MUSICXML_OUTPUT_MUSICXML"
+elif [ -f "$MUSICXML_OUTPUT_XML" ]; then
+    MUSICXML_FILE="$MUSICXML_OUTPUT_XML"
 else
     echo "↪❌ Error: Could not find the generated MusicXML file." >&2
     echo "Looked for: $MUSICXML_OUTPUT_MXL" >&2
     echo "And: $MUSICXML_OUTPUT_MUSICXML" >&2
+    echo "And: $MUSICXML_OUTPUT_XML" >&2
     exit 1
 fi
 echo "↪✅ Found MusicXML file: $MUSICXML_FILE"
@@ -66,12 +70,22 @@ echo
 
 # 3. Analyze the harmony of the generated MusicXML file.
 echo "⏳ Step 2/3: Analyzing harmony..."
-./main.py analyze_musicxml "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
+./main.py generate_analysis_of_musicxml --out-dir "${OUTPUT_DIR}" "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
 echo "✅ Harmony analysis complete."
+echo "↪⏳ Validating analysis file was created..."
+ANALYSIS_FILE="${OUTPUT_DIR}/${BASENAME}_analysis.json"
+if [ -f "$ANALYSIS_FILE" ]; then
+    echo "↪✅ Found analysis file: $ANALYSIS_FILE"
+else
+    echo "↪❌ Error: Could not find the generated analysis file." >&2
+    echo "Looked for: $ANALYSIS_FILE" >&2
+    exit 1
+fi
 echo
 
 # 4. Convert the MusicXML file back to a PDF.
 echo "⏳ Step 3/3: Converting MusicXML to PDF..."
+# TODO: Consider adding --out-dir "${OUTPUT_DIR}" if supported by the command.
 ./main.py convert_musicxml_to_pdf "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
 echo "✅ MusicXML to PDF conversion complete."
 echo "↪⏳ Validating PDFs were created..."

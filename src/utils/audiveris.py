@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import logging
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -9,6 +10,7 @@ from pathlib import Path
 from src.utils import fs_utils
 from src.utils import image_utils
 
+logger = logging.getLogger(__name__)
 
 def which_exe(candidates: list[str]) -> str | None:
     for c in candidates:
@@ -57,11 +59,17 @@ def run_audiveris(
 
     args = [audiveris_cmd]
     if batch:
-        args.append("-batch")
+        args.append("-batch") # TODO: Do we ever not want batch mode?
     if export:
-        args.append("-export")
+        args.append("-export") # TODO: Do we ever not want to export?
+        # Force uncompressed MusicXML output
+        # args.append("-option")
+        # args.append("org.audiveris.omr.sheet.Main.option.exportFormat=musicxml")
+        args.append("-option")
+        args.append("org.audiveris.omr.sheet.BookManager.useCompression=false")
     args += ["-output", str(out_dir)]
     args += [str(p) for p in input_paths]
+    logger.info(f"Running Audiveris command: {' '.join(args)}")
 
     log_path = out_dir / "audiveris.log"
     proc = subprocess.run(
