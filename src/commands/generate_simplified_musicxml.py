@@ -10,7 +10,7 @@ from agents import Runner
 from agents import set_default_openai_client
 from openai import AsyncOpenAI
 
-from src.commands.analyze_musicxml import analyze_harmony
+from src.commands.generate_legacy_analysis_of_musicxml import analyze_harmony
 from src.utils import score_utils
 
 logger = logging.getLogger(__name__)
@@ -44,15 +44,18 @@ def generate_simplified_musicxml(musicxml_path: str) -> None:
         set_default_openai_client(client)
         code_execution_agent = Agent(
             name="Music Theorist and Composer Agent",
-            model="gpt-5",
+            # avoid gpt-5 for now with agents: https://github.com/openai/openai-agents-python/issues/1397
+            model="gpt-4.1",
             instructions=(f"""
                 You are an expert music theorist and composer.
-                Your task is to simplify the provided MusicXML file.
-                The goal is to reduce complexity while preserving the core melody and harmonic structure.
-                The simplified version should be easier to play for a beginner pianist, focusing on the main melodic line with basic chordal accompaniment.
+                Your task is to create a simplified arrangement of the provided MusicXML file.
+                The goal is to reduce the technical complexity of the accompaniment while keeping the piece the same length.
+                Preserve the full right-hand melody exactly as written, and keep the harmonic structure intact.
+                Simplify the left-hand part by replacing broken arpeggios or complex patterns with simpler arpeggios, blocked chords or basic chordal accompaniment.
+                The result should be a beginner-friendly piano arrangement that maintains the original character of the piece without shortening or omitting sections.
 
                 Additionally, you may also receive a harmony analysis of the piece.
-                You may use the analysis of the MusicXML or provide your own analysis.
+                You may use the analysis of the MusicXML or provide your own, more thorough analysis.
 
                 Only return the raw, simplified MusicXML content, with no explanations or pleasantries.
                 """
