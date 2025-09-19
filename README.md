@@ -1,4 +1,4 @@
-# Piano-Learning
+# Piano Learning
 
 ## Getting Set Up
 
@@ -82,9 +82,16 @@ deactivate                # deactivates virtualenv
 source .venv/bin/activate # reactivates virtualenv
 ```
 
-### Debugging
+## Validating the External Dependencies
 
-For additional details for
+## Debugging Issues
 
-* [Linkup](https://app.linkup.so/home)
-* [OpenAI Observability](https://platform.openai.com/logs)
+This repo makes use of various external tools.
+
+### Debugging Issues with OpenAI
+
+For additional details for validating issues:
+
+* [OpenAI's Observability](https://platform.openai.com/logs)
+
+Moreover, for validating the agent, the user can use the text defined in [prompt_for_chatgpt_v3.txt](src/piano_learning/resources/prompt_for_chatgpt_v3.txt) with an example user-provided MusicXML file.

@@ -14,6 +14,8 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']
         description: Forces to replace line ending by the UNIX 'lf' character.
+      - id: pretty-format-json
+        args: ['--no-sort-keys', '--autofix']
 
   # python linting
   - repo: https://github.com/asottile/reorder_python_imports
