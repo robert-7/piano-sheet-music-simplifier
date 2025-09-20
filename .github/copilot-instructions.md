@@ -1,75 +1,89 @@
 # Copilot Instructions for Piano-Learning
 
 ## Project Overview
-- **Purpose:** Tools and scripts for learning, processing, and converting piano music, including MusicXML, PDF, and MIDI workflows.
-- **Key Directories:**
-  - `user/input/`: Source music files (MusicXML, PDF, etc.)
-  - `user/output-*`: Output directories for processed results
-  - `main.py`: Main entry point for running music processing tasks via sub-commands.
+- Purpose: Tools and scripts for converting, analyzing, and simplifying piano sheet music. Primary formats are PDF and MusicXML; outputs include MusicXML and PDF.
+- Key directories:
+  - `user/input/`: Source music files (PDF, MusicXML)
+  - `user/output/`: Destination for generated outputs (pass with `--out-dir`)
+  - `src/piano_learning/resources/`: Prompts and resources (e.g., `prompt_for_chatgpt.txt`)
+  - `main.py`: CLI entry point exposing sub-commands
 
 ## Environment Setup
-- Use Python 3.10+ and Ubuntu (see `README.md` for full setup commands)
-- Always use a virtual environment (`python -m venv .venv && source .venv/bin/activate`)
-- Install dependencies with `pip install -r requirements.txt`
-- Java and tools like Audiveris, LilyPond, and MuseScore are required for some workflows (see `README.md` for install commands)
-- Pre-commit is used for linting: `pre-commit install` and `pre-commit run --all-files`
-
-## Quickstart
-- Create and activate a venv, then install deps:
+- OS: Ubuntu recommended. Python: 3.10–3.13 supported.
+- Use a virtual environment:
   - `python -m venv .venv && source .venv/bin/activate`
   - `pip install -r requirements.txt`
-- Put inputs in `user/input/`
+- Pre-commit for linting:
+  - `pre-commit install`
+  - `pre-commit run --all-files`
+- External tools required for end-to-end workflows (see `SETUP.md` for commands):
+  - OpenJDK 17
+  - Audiveris 5.7.1 (PDF → MusicXML)
+  - LilyPond (Music engraving)
+  - MuseScore (optional rendering/conversion)
+- Environment variables:
+  - Copy `.env.template` to `.env` and set `OPENAI_API_KEY`
+
+See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and verification).
+
+## Quickstart
+- Prepare environment (venv + dependencies) and install external tools per `SETUP.md`.
+- Place inputs in `user/input/`.
 - Discover available sub-commands and options:
   - `python main.py -h`
   - `python main.py <sub-command> -h`
 
 ## Developer Workflows
-- **Typical run:**
-  - Place input files in `user/input/`
-  - Run `main.py` with a sub-command (e.g., `convert_pdf_to_musicxml`) to process files.
-  - Outputs are written to `user/output-YYYY-MM-DD/` directories.
-- **Adding new processing logic:**
-  - Add new scripts or modules in the root or under `user/`
-  - Add a new sub-command to `main.py` to expose the functionality.
-  - Keep CLI help up to date (arguments, descriptions, examples).
-- **Discovering commands:**
-  - `python main.py -h` lists all sub-commands
-  - `python main.py <sub-command> -h` shows options for a specific command
+- Typical run:
+  1) Convert a PDF to MusicXML:
+     - `python main.py convert_pdf_to_musicxml --out-dir user/output user/input/Your_Score.pdf`
+  2) Generate an analysis for a MusicXML file:
+     - `python main.py generate_analysis_of_musicxml --out-dir user/output user/input/Your_Score.musicxml`
+  3) Create a simplified MusicXML via ChatGPT:
+     - Open `src/piano_learning/resources/prompt_for_chatgpt.txt` in ChatGPT ("ChatGPT 5 Thinking" model recommended)
+     - Set `${BASENAME}` (e.g., `Your_Score`) and a timestamp
+     - Attach `user/input/Your_Score.musicxml` and `user/input/Your_Score_analysis.json`
+     - Save the result as `user/input/Your_Score_simplified.musicxml`
+  4) Render the simplified MusicXML to PDF:
+     - `python main.py convert_musicxml_to_pdf --out-dir user/output user/input/Your_Score_simplified.musicxml`
 
-- **Testing:**
-  - No formal test suite; validate by running scripts on sample files
+- Adding new processing logic:
+  - Create new modules in `src/` or `user/` as needed
+  - Expose functionality as a new sub-command in `main.py`
+  - Keep CLI help up to date and document any new external dependencies
+
+- Testing:
+  - No formal test suite; validate by running the commands on sample files in `user/input/`
 
 ## Project Conventions
-- Output directories are date-stamped (e.g., `output-2025-09-16/`)
-- Input files are not modified; outputs are always written to new folders
-- Use clear, descriptive names for new scripts and modules
-- Keep dependencies minimal and document any new requirements in `requirements.txt` and `README.md`
-- Output layout:
-  - `user/output-YYYY-MM-DD/<task-or-module>/<basename>/...` (use a sensible subfolder structure per task)
+- Inputs are never modified; outputs go to `--out-dir` (examples use `user/output/`).
+- Prefer clear, descriptive names for new scripts and modules.
+- Keep dependencies minimal; update `requirements.txt` and `README.md` when adding new ones.
 
 ## Integration Points
-- External tools (Audiveris, LilyPond, MuseScore) are invoked via shell commands; ensure they are installed and on PATH
-- MusicXML, PDF, and MIDI files are the primary data formats
-- Verify tools are accessible:
-  - `audiveris -version`, `lilypond --version`, `mscore --version` or `musescore4 --version`
+- External tools invoked via shell commands; ensure they are on PATH.
+- Quick checks (see `SETUP.md` for full details):
+  - `audiveris -version`
+  - `lilypond --version`
+  - `snap list musescore` (if installed via snap)
 
 ## Examples
-- To convert a PDF to MusicXML:
-  - `python main.py convert_pdf_to_musicxml user/input/your_file.pdf`
-- To analyze a MusicXML file:
-  - `python main.py analyze_musicxml user/input/your_file.musicxml`
-- To convert a MusicXML file to PDF:
-  - `python main.py convert_musicxml_to_pdf user/input/your_file.musicxml`
+- Convert PDF → MusicXML:
+  - `python main.py convert_pdf_to_musicxml --out-dir user/output user/input/your_file.pdf`
+- Analyze MusicXML:
+  - `python main.py generate_analysis_of_musicxml --out-dir user/output user/input/your_file.musicxml`
+- Convert MusicXML → PDF:
+  - `python main.py convert_musicxml_to_pdf --out-dir user/output user/input/your_file.musicxml`
 - List commands and help:
   - `python main.py -h`
   - `python main.py <sub-command> -h`
 
-## References
-- See `README.md` for full setup and tool installation
-- Example input files: `user/input/`
-- Example outputs: `user/output-*/`
+## Troubleshooting & References
+- See `README.md` for the end-to-end workflow, and `SETUP.md` for installation commands.
+- OpenAI debugging: https://platform.openai.com/logs
+- Prompt reference: `src/piano_learning/resources/prompt_for_chatgpt.txt`
 
 ## Maintaining this file
-- Update “Examples” and “Developer Workflows” when adding/removing sub-commands in `main.py`.
-- Reflect any new external tool requirements in “Environment Setup” and “Integration Points”.
-- Keep output layout notes aligned with actual directory structure produced by commands.
+- Update "Examples" and "Developer Workflows" when adding/removing sub-commands in `main.py`.
+- Reflect any new external tool requirements (versions, install steps) in "Environment Setup" and "Integration Points".
+- Keep output directory guidance aligned with the actual structure produced by commands.
