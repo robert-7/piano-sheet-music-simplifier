@@ -5,7 +5,7 @@
 - Key directories:
   - `user/input/`: Source music files (PDF, MusicXML)
   - `user/output/`: Destination for generated outputs (pass with `--out-dir`)
-  - `src/piano_learning/resources/`: Prompts and resources (e.g., `prompt_for_chatgpt.txt`)
+  - `src/piano_learning/resources/`: Prompts and resources (e.g., `system_instructions_for_chatgpt.txt`, `user_prompt_for_chatgpt.txt`)
   - `main.py`: CLI entry point exposing sub-commands
 
 ## Environment Setup
@@ -40,10 +40,11 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
   2) Generate an analysis for a MusicXML file:
      - `python main.py generate_analysis_of_musicxml --out-dir user/output user/input/Your_Score.musicxml`
   3) Create a simplified MusicXML via ChatGPT:
-     - Open `src/piano_learning/resources/prompt_for_chatgpt.txt` in ChatGPT ("ChatGPT 5 Thinking" model recommended)
-     - Set `${BASENAME}` (e.g., `Your_Score`) and a timestamp
-     - Attach `user/input/Your_Score.musicxml` and `user/input/Your_Score_analysis.json`
-     - Save the result as `user/input/Your_Score_simplified.musicxml`
+    - In ChatGPT ("ChatGPT 5 Thinking" model recommended), set the System prompt to `src/piano_learning/resources/system_instructions_for_chatgpt.txt`
+    - Paste the User prompt from `src/piano_learning/resources/user_prompt_for_chatgpt.txt`
+    - Set `${BASENAME}` (e.g., `Your_Score`) and a timestamp
+    - Attach `user/input/Your_Score.musicxml` and `user/input/Your_Score_analysis.json`
+    - Save the result as `user/input/Your_Score_simplified.musicxml`
   4) Render the simplified MusicXML to PDF:
      - `python main.py convert_musicxml_to_pdf --out-dir user/output user/input/Your_Score_simplified.musicxml`
 
@@ -81,7 +82,9 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 ## Troubleshooting & References
 - See `README.md` for the end-to-end workflow, and `SETUP.md` for installation commands.
 - OpenAI debugging: https://platform.openai.com/logs
-- Prompt reference: `src/piano_learning/resources/prompt_for_chatgpt.txt`
+- Prompt references:
+  - System: `src/piano_learning/resources/system_instructions_for_chatgpt.txt`
+  - User: `src/piano_learning/resources/user_prompt_for_chatgpt.txt`
 
 ## Maintaining this file
 - Update "Examples" and "Developer Workflows" when adding/removing sub-commands in `main.py`.
