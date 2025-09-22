@@ -43,7 +43,7 @@ def _minify_xml_preserving_text(xml: str) -> str:
     xml = re.sub(r'>\s+<', '><', xml)
     return xml.strip()
 
-def generate_simplified_musicxml(musicxml_path: str) -> None:
+def generate_simplified_musicxml(musicxml_path: str, use_agent: bool, run_model_response_in_background: bool) -> None:
     """
     Generates a simplified version of a MusicXML file using an AI agent.
     """
@@ -79,18 +79,16 @@ def generate_simplified_musicxml(musicxml_path: str) -> None:
             "```\n"
         )
         logger.debug(query)
-        if False:
-            client = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=5)
+        # TODO: This isn't working due to timeouts.
+        if use_agent:
+            client = openai.AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=5)
             set_default_openai_client(client)
             code_execution_agent = Agent(
                 name="Expert Piano Arranger & Copyist",
+                # TODO: GPT-5 isn't fully working with the agents library yet
                 # model="gpt-5",
                 model="gpt-5-mini",
                 instructions=system_prompt,
-                model_settings={
-
-                }
-                # tools=[execute_code],
             )
             logger.info("Generating simplified MusicXML with OpenAI Agent...")
             attempts = int(os.getenv("OPENAI_RUN_ATTEMPTS", "2"))
@@ -109,6 +107,30 @@ def generate_simplified_musicxml(musicxml_path: str) -> None:
                         raise
             print(result)
             result = result.final_output
+        elif run_model_response_in_background:
+            client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=2)
+            set_default_openai_client(client)
+            logger.info("Generating simplified MusicXML with OpenAI Create with background=True...")
+            start = client.responses.create(
+                model="gpt-5",
+                instructions=system_prompt,
+                input=query,
+                background=True,           # <-- long-running job
+            )
+            times_slept, minutes_to_sleep_in_seconds = 0, 60
+            while True:
+                r = client.responses.retrieve(start.id)
+                if r.status == "completed":
+                    result = r.output_text
+                    break
+                elif r.status in ("failed", "cancelled"):
+                    raise RuntimeError(f"Job {r.status}. Result: {r}")
+                elif r.status in ("queued", "in_progress"):
+                    logger.info(f"Pending job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
+                else:
+                    logger.info(f"Unrecognized job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
+                times_slept += 1
+                time.sleep(minutes_to_sleep_in_seconds)
         elif False:
             client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=5)
             set_default_openai_client(client)
@@ -136,28 +158,6 @@ def generate_simplified_musicxml(musicxml_path: str) -> None:
                         print(event.delta, end="", flush=True)
                 result = stream.get_final_response()
                 print(result)
-        else:
-            client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=2)
-            set_default_openai_client(client)
-            logger.info("Generating simplified MusicXML with OpenAI Create with background=True...")
-            start = client.responses.create(
-                model="gpt-5",
-                # model="gpt-5-mini",
-                instructions=system_prompt,
-                input=query,
-                background=True,           # <-- long-running job
-            )
-            times_slept, minutes_to_sleep_in_seconds = 0, 60
-            while True:
-                r = client.responses.retrieve(start.id)
-                if r.status == "completed":
-                    result = r.output_text
-                    break
-                elif r.status in ("failed", "cancelled"):
-                    raise RuntimeError(f"Job {r.status}. Result: {r}")
-                logger.info(f"Job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
-                times_slept += 1
-                time.sleep(minutes_to_sleep_in_seconds)
 
         # Parse the response to extract XML and optional filename from the two-section format
         full_output = (result or "").strip()

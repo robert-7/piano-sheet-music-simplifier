@@ -58,6 +58,9 @@ def build_parser() -> argparse.ArgumentParser:
     # simplify_parser.add_argument("--out-dir", default=default_out_dir, help="Output directory")
     simplify_parser.add_argument("musicxml_path", help="Path to the original MusicXML or MXL file")
     simplify_parser.add_argument("--manual", action="store_true", help="Generate manual prompt files for review, but do not call the AI API")
+    # TODO: Change default to True after issuue with GPT-5 and agents is resolved
+    simplify_parser.add_argument("--use-agent", action="store_true", default=False, help="Use the OpenAI API with an agent")
+    simplify_parser.add_argument("--run-model-response-in-background", default=True, action="store_true", help="Run the model response in the background")
 
     # --- Sub-parser for convert_musicxml_to_pdf ---
     convert_parser = subparsers.add_parser("convert_musicxml_to_pdf", help="Convert a MusicXML file to PDF.")
@@ -93,7 +96,7 @@ def main():
         if args.manual:
             generate_simplified_musicxml.generate_chatgpt_prompts_for_simplified_musicxml(args.musicxml_path)
         else:
-            generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path)
+            generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path, args.use_agent, args.run_model_response_in_background)
 
     elif args.command == "convert_musicxml_to_pdf":
         convert_musicxml_to_pdf.convert_musicxml_to_pdf(args.musicxml_path, args.overwrite)
