@@ -32,6 +32,10 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 - Discover available sub-commands and options:
   - `python main.py -h`
   - `python main.py <sub-command> -h`
+- Create a simplified MusicXML (automatic, recommended):
+  - `python main.py generate_simplified_musicxml user/input/Your_Score.musicxml`
+- Create manual prompts (alternative):
+  - `python main.py generate_simplified_musicxml --manual user/input/Your_Score.musicxml`
 
 ## Developer Workflows
 - Typical run:
@@ -39,13 +43,14 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
      - `python main.py convert_pdf_to_musicxml --out-dir user/output user/input/Your_Score.pdf`
   2) Generate an analysis for a MusicXML file:
      - `python main.py generate_analysis_of_musicxml --out-dir user/output user/input/Your_Score.musicxml`
-  3) Create a simplified MusicXML via ChatGPT:
-    - Recommended: print the full (rendered) prompts via CLI, then copy/paste into ChatGPT ("ChatGPT 5 Thinking" model):
-      - `python main.py generate_simplified_musicxml --manual user/input/Your_Score.musicxml`
-      - Note: This renders `src/piano_learning/resources/system_instructions_for_chatgpt.j2` and `src/piano_learning/resources/user_prompt_for_chatgpt.j2` with BASENAME and TIMESTAMP.
-    - Optional (manual templating): set the System prompt to `system_instructions_for_chatgpt.j2` and the User prompt to `user_prompt_for_chatgpt.j2`, then fill `{{ BASENAME }}` and `{{ TIMESTAMP }}` yourself.
-    - Attach `user/input/Your_Score.musicxml` and `user/input/Your_Score_analysis.json`
-    - Save the result as `user/input/Your_Score_simplified.musicxml`
+  3) Create a simplified MusicXML:
+     - Automatic (recommended):
+       - `python main.py generate_simplified_musicxml user/input/Your_Score.musicxml`
+     - Manual (alternative, copy/paste prompts into ChatGPT):
+       - `python main.py generate_simplified_musicxml --manual user/input/Your_Score.musicxml`
+       - Note: This renders `src/piano_learning/resources/system_instructions_for_chatgpt.j2` and `src/piano_learning/resources/user_prompt_for_chatgpt.j2` with BASENAME and TIMESTAMP.
+       - Attach `user/input/Your_Score.musicxml` and `user/input/Your_Score_analysis.json`
+       - Save the result as `user/input/Your_Score_simplified.musicxml`
   4) Render the simplified MusicXML to PDF:
      - `python main.py convert_musicxml_to_pdf --out-dir user/output user/input/Your_Score_simplified.musicxml`
 
@@ -74,6 +79,10 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
   - `python main.py convert_pdf_to_musicxml --out-dir user/output user/input/your_file.pdf`
 - Analyze MusicXML:
   - `python main.py generate_analysis_of_musicxml --out-dir user/output user/input/your_file.musicxml`
+- Create simplified MusicXML (automatic):
+  - `python main.py generate_simplified_musicxml user/input/your_file.musicxml`
+- Create simplified MusicXML (manual prompts):
+  - `python main.py generate_simplified_musicxml --manual user/input/your_file.musicxml`
 - Convert MusicXML → PDF:
   - `python main.py convert_musicxml_to_pdf --out-dir user/output user/input/your_file.musicxml`
 - List commands and help:
