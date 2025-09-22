@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+from datetime import datetime
 from pathlib import Path
 
 import dotenv
@@ -12,6 +14,7 @@ from openai import AsyncOpenAI
 
 from src.commands.generate_legacy_analysis_of_musicxml import analyze_harmony
 from src.utils import score_utils
+from src.utils.template_utils import render_template_file
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,17 @@ def generate_simplified_musicxml(musicxml_path: str) -> None:
         with open(musicxml_path) as f:
             musicxml_content = f.read()
 
+        # Prepare templated prompts
+        p = Path(musicxml_path)
+        basename = p.stem
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        resources_dir = Path(__file__).resolve().parents[1] / "piano_learning" / "resources"
+        system_tpl = resources_dir / "system_instructions_for_chatgpt.j2"
+        user_tpl = resources_dir / "user_prompt_for_chatgpt.j2"
+        context = {"BASENAME": basename, "TIMESTAMP": timestamp}
+        system_prompt = render_template_file(system_tpl, context)
+        user_prompt = render_template_file(user_tpl, context)
+
         # Set up the OpenAI client
         timeout = httpx.Timeout(300.0, read=300.0, write=60.0, connect=30.0)
         client = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=3)
@@ -46,45 +60,47 @@ def generate_simplified_musicxml(musicxml_path: str) -> None:
             name="Music Theorist and Composer Agent",
             # avoid gpt-5 for now with agents: https://github.com/openai/openai-agents-python/issues/1397
             model="gpt-4.1",
-            instructions=(f"""
-                You are an expert music theorist and composer.
-                Your task is to create a simplified arrangement of the provided MusicXML file.
-                The goal is to reduce the technical complexity of the accompaniment while keeping the piece the same length.
-                Preserve the full right-hand melody exactly as written, and keep the harmonic structure intact.
-                Simplify the left-hand part by replacing broken arpeggios or complex patterns with simpler arpeggios, blocked chords or basic chordal accompaniment.
-                The result should be a beginner-friendly piano arrangement that maintains the original character of the piece without shortening or omitting sections.
-
-                Additionally, you may also receive a harmony analysis of the piece.
-                You may use the analysis of the MusicXML or provide your own, more thorough analysis.
-
-                Only return the raw, simplified MusicXML content, with no explanations or pleasantries.
-                """
-            ),
+            instructions=system_prompt,
             # tools=[execute_code],
         )
 
         logger.info("Generating simplified MusicXML with OpenAI...")
-        query = (f"""Here is my musicxml file:
-            ```xml
-            {musicxml_content}
-            ```
-            Please simplify it based on the following analysis (or provide your own analysis if this is insufficient):
-            ```plaintext
-            {analysis}
-            ```
-            """
+        query = (
+            f"{user_prompt}\n\n"
+            "Here is the MusicXML content (inline attachment):\n"
+            "```xml\n"
+            f"{musicxml_content}\n"
+            "```\n\n"
+            "Here is the harmony analysis JSON (inline attachment):\n"
+            "```json\n"
+            f"{analysis}\n"
+            "```\n"
         )
         result = Runner.run_sync(starting_agent=code_execution_agent, input=query)
         print(result)
 
-        # Clean the response to get only the XML
-        simplified_musicxml = (result.final_output or "").strip()
-        if "```xml" in simplified_musicxml:
-            simplified_musicxml = simplified_musicxml.split("```xml")[1].split("```")[0].strip()
+        # Parse the response to extract XML and optional filename from the two-section format
+        full_output = (result.final_output or "").strip()
+
+        # Try to extract the filename from the "===MUSICXML filename=\"...\"===" line
+        filename_match = re.search(r'===MUSICXML\s+filename="([^"]+)"===', full_output)
+        suggested_filename = filename_match.group(1) if filename_match else None
+
+        # Extract the first XML code block
+        xml_match = re.search(r"```xml\s*(.*?)\s*```", full_output, flags=re.DOTALL)
+        if not xml_match:
+            # Fallback: try any code fence
+            xml_match = re.search(r"```\s*(.*?)\s*```", full_output, flags=re.DOTALL)
+        if not xml_match:
+            raise RuntimeError("Model response did not contain a MusicXML code block.")
+
+        simplified_musicxml = xml_match.group(1).strip()
 
         # Save the simplified MusicXML to a new file
-        p = Path(musicxml_path)
-        output_path = p.with_name(f"{p.stem}_simplified.musicxml")
+        if suggested_filename:
+            output_path = p.with_name(suggested_filename)
+        else:
+            output_path = p.with_name(f"{p.stem}_simplified.musicxml")
         with open(output_path, "w") as f:
             f.write(simplified_musicxml)
 
@@ -92,3 +108,16 @@ def generate_simplified_musicxml(musicxml_path: str) -> None:
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
+
+def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str) -> None:
+    """
+    Generates ChatGPT prompts for a given MusicXML file.
+    """
+    base_for_prompts = Path('src/piano_learning/resources')
+    base_file_name = Path(musicxml_path).stem
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    ctx = {"BASENAME": base_file_name, "TIMESTAMP": timestamp}
+
+    print(render_template_file(base_for_prompts / 'system_instructions_for_chatgpt.j2', ctx))
+    print('\n' + '='*80 + '\n')
+    print(render_template_file(base_for_prompts / 'user_prompt_for_chatgpt.j2', ctx))

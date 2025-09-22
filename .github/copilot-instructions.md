@@ -5,7 +5,7 @@
 - Key directories:
   - `user/input/`: Source music files (PDF, MusicXML)
   - `user/output/`: Destination for generated outputs (pass with `--out-dir`)
-  - `src/piano_learning/resources/`: Prompts and resources (e.g., `system_instructions_for_chatgpt.txt`, `user_prompt_for_chatgpt.txt`)
+  - `src/piano_learning/resources/`: Prompts and resources (e.g., `system_instructions_for_chatgpt.j2`, `user_prompt_for_chatgpt.j2`)
   - `main.py`: CLI entry point exposing sub-commands
 
 ## Environment Setup
@@ -40,9 +40,10 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
   2) Generate an analysis for a MusicXML file:
      - `python main.py generate_analysis_of_musicxml --out-dir user/output user/input/Your_Score.musicxml`
   3) Create a simplified MusicXML via ChatGPT:
-    - In ChatGPT ("ChatGPT 5 Thinking" model recommended), set the System prompt to `src/piano_learning/resources/system_instructions_for_chatgpt.txt`
-    - Paste the User prompt from `src/piano_learning/resources/user_prompt_for_chatgpt.txt`
-    - Set `${BASENAME}` (e.g., `Your_Score`) and a timestamp
+    - Recommended: print the full (rendered) prompts via CLI, then copy/paste into ChatGPT ("ChatGPT 5 Thinking" model):
+      - `python main.py generate_simplified_musicxml --manual user/input/Your_Score.musicxml`
+      - Note: This renders `src/piano_learning/resources/system_instructions_for_chatgpt.j2` and `src/piano_learning/resources/user_prompt_for_chatgpt.j2` with BASENAME and TIMESTAMP.
+    - Optional (manual templating): set the System prompt to `system_instructions_for_chatgpt.j2` and the User prompt to `user_prompt_for_chatgpt.j2`, then fill `{{ BASENAME }}` and `{{ TIMESTAMP }}` yourself.
     - Attach `user/input/Your_Score.musicxml` and `user/input/Your_Score_analysis.json`
     - Save the result as `user/input/Your_Score_simplified.musicxml`
   4) Render the simplified MusicXML to PDF:
@@ -83,8 +84,8 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 - See `README.md` for the end-to-end workflow, and `SETUP.md` for installation commands.
 - OpenAI debugging: https://platform.openai.com/logs
 - Prompt references:
-  - System: `src/piano_learning/resources/system_instructions_for_chatgpt.txt`
-  - User: `src/piano_learning/resources/user_prompt_for_chatgpt.txt`
+  - System: `src/piano_learning/resources/system_instructions_for_chatgpt.j2`
+  - User: `src/piano_learning/resources/user_prompt_for_chatgpt.j2`
 
 ## Maintaining this file
 - Update "Examples" and "Developer Workflows" when adding/removing sub-commands in `main.py`.

@@ -54,7 +54,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # --- Sub-parser for generate_simplified_musicxml ---
     simplify_parser = subparsers.add_parser("generate_simplified_musicxml", help="Generate a simplified version of the piece in a given MusicXML file (as a MusicXML file).")
+    # TODO: Add --out-dir option to specify output directory
+    # simplify_parser.add_argument("--out-dir", default=default_out_dir, help="Output directory")
     simplify_parser.add_argument("musicxml_path", help="Path to the original MusicXML or MXL file")
+    simplify_parser.add_argument("--manual", action="store_true", help="Generate manual prompt files for review, but do not call the AI API")
 
     # --- Sub-parser for convert_musicxml_to_pdf ---
     convert_parser = subparsers.add_parser("convert_musicxml_to_pdf", help="Convert a MusicXML file to PDF.")
@@ -81,14 +84,16 @@ def main():
 
     elif args.command == "generate_analysis_of_musicxml":
         # TODO: Remove legacy option after verifying new analysis improvements
-        logger.info(f"args.out={args.out_dir}")
         if args.legacy:
             generate_legacy_analysis_of_musicxml.generate_legacy_analysis_of_musicxml(args.musicxml_path)
         else:
             generate_analysis_of_musicxml.generate_analysis_of_musicxml(args.musicxml_path, out_dir=args.out_dir)
 
     elif args.command == "generate_simplified_musicxml":
-        generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path)
+        if args.manual:
+            generate_simplified_musicxml.generate_chatgpt_prompts_for_simplified_musicxml(args.musicxml_path)
+        else:
+            generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path)
 
     elif args.command == "convert_musicxml_to_pdf":
         convert_musicxml_to_pdf.convert_musicxml_to_pdf(args.musicxml_path, args.overwrite)
