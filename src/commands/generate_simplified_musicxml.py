@@ -108,3 +108,16 @@ def generate_simplified_musicxml(musicxml_path: str) -> None:
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
+
+def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str) -> None:
+    """
+    Generates ChatGPT prompts for a given MusicXML file.
+    """
+    base_for_prompts = Path('src/piano_learning/resources')
+    base_file_name = Path(musicxml_path).stem
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    ctx = {"BASENAME": base_file_name, "TIMESTAMP": timestamp}
+
+    print(render_template_file(base_for_prompts / 'system_instructions_for_chatgpt.j2', ctx))
+    print('\n' + '='*80 + '\n')
+    print(render_template_file(base_for_prompts / 'user_prompt_for_chatgpt.j2', ctx))

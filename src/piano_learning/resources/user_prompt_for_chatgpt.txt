@@ -1,6 +1,0 @@
-USER PROMPT
-BASENAME={{ BASENAME }}
-TIMESTAMP={{ TIMESTAMP }}
-Attached: {{ BASENAME }}.xml and {{ BASENAME }}_analysis.json.
-
-Use the {{ BASENAME }}_analysis.json as the authoritative plan. Do not shorten or omit measures; preserve all repeats/voltas exactly. Produce the two sections per SYSTEM.
