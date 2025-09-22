@@ -43,31 +43,5 @@ For additional details for validating issues:
 
 * [OpenAI's Observability](https://platform.openai.com/logs)
 
-Moreover, for validating the agent, use the split prompts with an example user-provided MusicXML file:
-
-- System prompt: [`system_instructions_for_chatgpt.j2`](src/piano_learning/resources/system_instructions_for_chatgpt.j2)
-- User prompt: [`user_prompt_for_chatgpt.j2`](src/piano_learning/resources/user_prompt_for_chatgpt.j2)
-
-### Optional: render templates from the command line
-
-If you want to render the `.j2` files without running the Python command, you can do it with a small Python one-liner:
-
-```
-python - <<'PY'
-from pathlib import Path
-from src.utils.template_utils import render_template_file
-ctx = {"BASENAME": "Difficult_Sheet_Music", "TIMESTAMP": "20250101-120000"}
-base = Path('src/piano_learning/resources')
-print(render_template_file(base / 'system_instructions_for_chatgpt.j2', ctx))
-print('\n' + '='*80 + '\n')
-print(render_template_file(base / 'user_prompt_for_chatgpt.j2', ctx))
-PY
-```
-
-Or install `jinja2-cli` if you prefer a pure CLI tool:
-
-```
-pip install jinja2-cli
-jinja2 src/piano_learning/resources/system_instructions_for_chatgpt.j2 -D BASENAME=Difficult_Sheet_Music -D TIMESTAMP=20250101-120000
-jinja2 src/piano_learning/resources/user_prompt_for_chatgpt.j2 -D BASENAME=Difficult_Sheet_Music -D TIMESTAMP=20250101-120000
-```
+Moreover, for validating the agent, use the `--manual` argument to output the prompts to paste into ChatGPT.
+Run `python main.py generate_simplified_musicxml --manual user/input/Difficult_Sheet_Music.xml` to generate the prompt.
