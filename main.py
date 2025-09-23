@@ -25,13 +25,13 @@ def build_parser() -> argparse.ArgumentParser:
     - Generating simplified MusicXML files
     - Converting MusicXML to PDF
 
-    Each sub-command expects input files from 'user/input/' and writes outputs to a date-stamped directory under 'user/output-*/'.
+    Each sub-command expects input files from 'user/input/' and writes outputs to a date-stamped directory under 'user/output/*/'.
     External tools (e.g., Audiveris, LilyPond, MuseScore) are invoked as needed.
 
     See README.md for usage examples and setup instructions.
     """
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    default_out_dir = Path(f"./user/output-{timestamp}")
+    default_out_dir = Path(f"./user/output/{timestamp}")
     fs_utils.ensure_dir(default_out_dir)
 
     # Create the top-level parser with sub-commands

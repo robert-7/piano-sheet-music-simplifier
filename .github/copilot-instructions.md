@@ -4,7 +4,7 @@
 - Purpose: Tools and scripts for converting, analyzing, and simplifying piano sheet music. Primary formats are PDF and MusicXML; outputs include MusicXML and PDF.
 - Key directories:
   - `user/input/`: Source music files (PDF, MusicXML)
-  - `user/output/`: Destination for generated outputs (pass with `--out-dir`)
+  - `user/output/TIMESTAMP/`: Destination for generated outputs (pass with `--out-dir`)
   - `src/piano_learning/resources/`: Prompts and resources (e.g., `system_instructions_for_chatgpt.j2`, `user_prompt_for_chatgpt.j2`)
   - `main.py`: CLI entry point exposing sub-commands
 
@@ -40,9 +40,9 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 ## Developer Workflows
 - Typical run:
   1) Convert a PDF to MusicXML:
-     - `python main.py convert_pdf_to_musicxml --out-dir user/output user/input/Your_Score.pdf`
+     - `python main.py convert_pdf_to_musicxml --out-dir user/output/TIMESTAMP user/input/Your_Score.pdf`
   2) Generate an analysis for a MusicXML file:
-     - `python main.py generate_analysis_of_musicxml --out-dir user/output user/input/Your_Score.musicxml`
+     - `python main.py generate_analysis_of_musicxml --out-dir user/output/TIMESTAMP user/input/Your_Score.musicxml`
   3) Create a simplified MusicXML:
      - Automatic (recommended):
        - `python main.py generate_simplified_musicxml user/input/Your_Score.musicxml`
@@ -52,7 +52,7 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
        - Attach `user/input/Your_Score.musicxml` and `user/input/Your_Score_analysis.json`
        - Save the result as `user/input/Your_Score_simplified.musicxml`
   4) Render the simplified MusicXML to PDF:
-     - `python main.py convert_musicxml_to_pdf --out-dir user/output user/input/Your_Score_simplified.musicxml`
+     - `python main.py convert_musicxml_to_pdf --out-dir user/output/TIMESTAMP user/input/Your_Score_simplified.musicxml`
 
 - Adding new processing logic:
   - Create new modules in `src/` or `user/` as needed
@@ -63,9 +63,7 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
   - No formal test suite; validate by running the commands on sample files in `user/input/`
 
 ## Project Conventions
-- Inputs are never modified; outputs go to `--out-dir` (examples use `user/output/`).
-- Prefer clear, descriptive names for new scripts and modules.
-- Keep dependencies minimal; update `requirements.txt` and `README.md` when adding new ones.
+- Inputs are never modified; outputs go to `--out-dir`. Use timestamped subdirectories under `user/output/` (i.e., `user/output/TIMESTAMP/`).
 
 ## Integration Points
 - External tools invoked via shell commands; ensure they are on PATH.
@@ -76,15 +74,15 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 
 ## Examples
 - Convert PDF → MusicXML:
-  - `python main.py convert_pdf_to_musicxml --out-dir user/output user/input/your_file.pdf`
+  - `python main.py convert_pdf_to_musicxml --out-dir user/output/TIMESTAMP user/input/your_file.pdf`
 - Analyze MusicXML:
-  - `python main.py generate_analysis_of_musicxml --out-dir user/output user/input/your_file.musicxml`
+  - `python main.py generate_analysis_of_musicxml --out-dir user/output/TIMESTAMP user/input/your_file.musicxml`
 - Create simplified MusicXML (automatic):
   - `python main.py generate_simplified_musicxml user/input/your_file.musicxml`
 - Create simplified MusicXML (manual prompts):
   - `python main.py generate_simplified_musicxml --manual user/input/your_file.musicxml`
 - Convert MusicXML → PDF:
-  - `python main.py convert_musicxml_to_pdf --out-dir user/output user/input/your_file.musicxml`
+  - `python main.py convert_musicxml_to_pdf --out-dir user/output/TIMESTAMP user/input/your_file.musicxml`
 - List commands and help:
   - `python main.py -h`
   - `python main.py <sub-command> -h`
@@ -98,5 +96,7 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 
 ## Maintaining this file
 - Update "Examples" and "Developer Workflows" when adding/removing sub-commands in `main.py`.
+- Reflect any new external tool requirements (versions, install steps) in "Environment Setup" and "Integration Points".
+- Keep output directory guidance aligned with the actual structure produced by commands (timestamped `user/output/TIMESTAMP/`).
 - Reflect any new external tool requirements (versions, install steps) in "Environment Setup" and "Integration Points".
 - Keep output directory guidance aligned with the actual structure produced by commands.
