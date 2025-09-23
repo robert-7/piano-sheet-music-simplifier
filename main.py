@@ -35,21 +35,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Create the top-level parser with sub-commands
     parser = argparse.ArgumentParser(description="Process sheet music files: analyze harmony, convert to PDF, or process PDFs.")
-    # NEW: global log file option (logs to console and this file)
-    parser.add_argument(
-        "--out-dir",
-        type=Path,
-        default=default_out_dir,
-        help="Path to the output directory.",
-    )
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
+    parser.add_argument("--out-dir", type=Path, default=default_out_dir, help="Path to the output directory.")
+
+    # --- Sub-parser for generate_simplified_pdf ---
+    pdf_simplifier_parser = subparsers.add_parser("generate_simplified_pdf", help="Simplify a PDF file.")
+    pdf_simplifier_parser.add_argument("pdf_path", type=Path, help="Path to the input PDF")
 
     # --- Sub-parser for convert_pdf_to_musicxml ---
     pdf_parser = subparsers.add_parser("convert_pdf_to_musicxml", help="Convert a PDF to MusicXML using Audiveris.")
     pdf_parser.add_argument("pdf_path", type=Path, help="Path to the input PDF")
     pdf_parser.add_argument("--no-rasterize", action="store_true", help="Let Audiveris read the PDF directly")
     pdf_parser.add_argument("--dpi", type=int, default=400, help="DPI for rasterization")
-    pdf_parser.add_argument("--audiveris", type=str, default=None, help="Path to audiveris executable")
 
     # --- Sub-parser for generate_analysis_of_musicxml ---
     analyze_parser = subparsers.add_parser("generate_analysis_of_musicxml", help="Perform harmony analysis on a MusicXML file.")
@@ -68,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     convert_parser = subparsers.add_parser("convert_musicxml_to_pdf", help="Convert a MusicXML file to PDF.")
     convert_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
     convert_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing PDF files.")
-    # TODO: Lilipond output isn't as good as MuseScore
+    # TODO: Lilipond output isn't as good as MuseScore.
     convert_parser.add_argument("--convert-with-lilypond", action="store_true", default=False, help="Use LilyPond to convert to PDF (default: True)")
     convert_parser.add_argument("--convert-with-musescore", action="store_true", default=True, help="Use MuseScore to convert to PDF (default: True)")
 
@@ -90,14 +87,28 @@ def main():
         ],
     )
 
-    if args.command == "convert_pdf_to_musicxml":
-        convert_pdf_to_musicxml.convert_pdf_to_musicxml(
-            pdf_path=args.pdf_path,
-            out_dir=args.out_dir,
-            prefer_rasterize=not args.no_rasterize,
-            dpi=args.dpi,
-            audiveris_path=args.audiveris,
-        )
+    if args.command == "generate_simplified_pdf":
+        out_dir = args.out_dir
+        try:
+            musicxml_path = convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, out_dir, True, False)
+            if not musicxml_path:
+                logger.error(f"Error converting PDF {args.pdf_path} to MusicXML. Logs can be found in {out_dir}.")
+                exit(1)
+            simplified_musicxml_path = generate_simplified_musicxml.generate_simplified_musicxml(
+                musicxml_path, out_dir=out_dir, use_agent=False, run_model_response_in_background=True)
+            if not simplified_musicxml_path:
+                logger.error(f"Error generating simplified MusicXML from {musicxml_path}. Logs can be found in {out_dir}.")
+                exit(1)
+            outputs = convert_musicxml_to_pdf.convert_musicxml_to_pdf(
+                simplified_musicxml_path, out_dir=out_dir, convert_with_lilypond=False, convert_with_musescore=True, overwrite=True)
+            if not outputs:
+                logger.error(f"Error generating PDFs from {simplified_musicxml_path}. Logs can be found in {out_dir}.")
+                exit(1)
+        except Exception as e:
+            logger.error(f"Error processing {args.pdf_path}. Logs can be found in {out_dir}: {e}")
+
+    elif args.command == "convert_pdf_to_musicxml":
+        convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, args.out_dir, not args.no_rasterize, args.dpi)
 
     elif args.command == "generate_analysis_of_musicxml":
         # TODO: Remove legacy option after verifying new analysis improvements

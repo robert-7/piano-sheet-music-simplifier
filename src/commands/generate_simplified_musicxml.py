@@ -44,7 +44,7 @@ def _minify_xml_preserving_text(xml: str) -> str:
     xml = re.sub(r'>\s+<', '><', xml)
     return xml.strip()
 
-def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: bool, run_model_response_in_background: bool) -> None:
+def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: bool, run_model_response_in_background: bool) -> Path:
     """
     Generates a simplified version of a MusicXML file using an AI agent.
     """
@@ -195,6 +195,7 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
         with open(musicxml_output_path, "w") as f:
             f.write(simplified_musicxml)
         logger.info(f"✅ Simplified MusicXML saved to: {musicxml_output_path}")
+        return musicxml_output_path
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
