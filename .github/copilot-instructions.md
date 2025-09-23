@@ -35,8 +35,9 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 * Discover available sub-commands and options:
     * `python main.py -h`
     * `python main.py <sub-command> -h`
-* End-to-end in one command (PDF → simplified PDF):
-    * `./main.py generate_simplified_pdf user/input/Your_Score.pdf`
+* End-to-end in one command (generate final simplified PDF):
+    * From PDF: `./main.py generate_simplified_pdf --pdf_path user/input/Your_Score.pdf`
+    * From MusicXML: `./main.py generate_simplified_pdf --musicxml_path user/input/Your_Score.musicxml`
 * Create a simplified MusicXML (automatic, recommended):
     * `python main.py generate_simplified_musicxml user/input/Your_Score.musicxml`
 * Create manual prompts (alternative):
@@ -46,8 +47,9 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 
 ### End-to-End run
 
-1. End-to-end in one command (PDF → simplified PDF):
-    * `./main.py generate_simplified_pdf user/input/Your_Score.pdf`
+1. End-to-end in one command (generate final simplified PDF):
+    * From PDF: `./main.py generate_simplified_pdf --pdf_path user/input/Your_Score.pdf`
+    * From MusicXML: `./main.py generate_simplified_pdf --musicxml_path user/input/Your_Score.musicxml`
 
 ### Run one command at a time
 
@@ -66,16 +68,6 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 1. Render the simplified MusicXML to PDF:
     * `python main.py convert_musicxml_to_pdf user/input/Your_Score_simplified.musicxml`
 
-### Adding new processing logic
-
-* Create new modules in `src/` or `user/` as needed
-* Expose functionality as a new sub-command in `main.py`
-* Keep CLI help up to date and document any new external dependencies
-
-### Testing
-
-No formal test suite; validate by running the commands on sample files in `user/input/`
-
 ## Project Conventions
 
 Inputs are never modified; outputs go to the directory specified by the global `--out-dir`. Use timestamped subdirectories under `user/output/` (i.e., `user/output/TIMESTAMP/`).
@@ -90,8 +82,9 @@ Inputs are never modified; outputs go to the directory specified by the global `
 
 ## Examples
 
-* End-to-end (PDF → simplified PDF):
-    * `./main.py generate_simplified_pdf user/input/your_file.pdf`
+* End-to-end (generate final simplified PDF):
+    * From PDF: `./main.py generate_simplified_pdf --pdf_path user/input/your_file.pdf`
+    * From MusicXML: `./main.py generate_simplified_pdf --musicxml_path user/input/your_file.musicxml`
 * Convert PDF → MusicXML:
     * `python main.py convert_pdf_to_musicxml user/input/your_file.pdf`
 * Analyze MusicXML:

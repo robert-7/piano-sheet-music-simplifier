@@ -40,7 +40,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     # --- Sub-parser for generate_simplified_pdf ---
     pdf_simplifier_parser = subparsers.add_parser("generate_simplified_pdf", help="Simplify a PDF file.")
-    pdf_simplifier_parser.add_argument("pdf_path", type=Path, help="Path to the input PDF")
+    pdf_simplifier_parser.add_argument("--pdf_path", type=Path, help="Path to the input PDF")
+    pdf_simplifier_parser.add_argument("--musicxml_path", type=Path, help="Path to the input MusicXML")
 
     # --- Sub-parser for convert_pdf_to_musicxml ---
     pdf_parser = subparsers.add_parser("convert_pdf_to_musicxml", help="Convert a PDF to MusicXML using Audiveris.")
@@ -90,10 +91,16 @@ def main():
     if args.command == "generate_simplified_pdf":
         out_dir = args.out_dir
         try:
-            musicxml_path = convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, out_dir, True, False)
-            if not musicxml_path:
-                logger.error(f"Error converting PDF {args.pdf_path} to MusicXML. Logs can be found in {out_dir}.")
+            if not args.pdf_path and not args.musicxml_path:
+                logger.error("Either --pdf_path or --musicxml_path must be provided.")
                 exit(1)
+            if args.pdf_path:
+                musicxml_path = convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, out_dir, True, False)
+                if not musicxml_path:
+                    logger.error(f"Error converting PDF {args.pdf_path} to MusicXML. Logs can be found in {out_dir}.")
+                    exit(1)
+            else:
+                musicxml_path = args.musicxml_path
             simplified_musicxml_path = generate_simplified_musicxml.generate_simplified_musicxml(
                 musicxml_path, out_dir=out_dir, use_agent=False, run_model_response_in_background=True)
             if not simplified_musicxml_path:
