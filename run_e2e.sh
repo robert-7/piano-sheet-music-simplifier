@@ -55,7 +55,7 @@ echo
 
 # 2. Convert the source PDF to a MusicXML file.
 echo "⏳ Step 1/4: Converting PDF to MusicXML..."
-./main.py convert_pdf_to_musicxml --out-dir "${OUTPUT_DIR}" "${INPUT_PDF}" >> "${LOG_FILE}" 2>&1
+./main.py --out-dir "${OUTPUT_DIR}" convert_pdf_to_musicxml "${INPUT_PDF}" >> "${LOG_FILE}" 2>&1
 echo "✅ PDF to MusicXML conversion complete."
 
 # The expected path for the generated MusicXML file.
@@ -83,7 +83,7 @@ echo
 
 # 3. Analyze the harmony of the generated MusicXML file.
 echo "⏳ Step 2/4: Analyzing harmony..."
-./main.py generate_analysis_of_musicxml --out-dir "${OUTPUT_DIR}" "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
+./main.py --out-dir "${OUTPUT_DIR}" generate_analysis_of_musicxml "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
 echo "✅ Harmony analysis complete."
 echo "↪⏳ Validating analysis file was created..."
 ANALYSIS_FILE="${OUTPUT_DIR}/${BASENAME}_analysis.json"
@@ -99,7 +99,7 @@ echo
 # Conditionally run an extra analysis step when --test-simplify is provided.
 echo "⏳ Step 3/4: Simplifying harmony..."
 if [ "${TEST_SIMPLIFY}" = true ]; then
-  ./main.py generate_simplified_musicxml --out-dir "${OUTPUT_DIR}" "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
+  ./main.py --out-dir "${OUTPUT_DIR}" generate_simplified_musicxml "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
   echo "✅ Simplifying harmony test complete."
   echo "↪⏳ Validating analysis file was created..."
   SIMPLIFIED_FILE="${OUTPUT_DIR}/${BASENAME}_simplified.musicxml"
@@ -117,7 +117,7 @@ echo
 
 # 4. Convert the MusicXML file back to a PDF.
 echo "⏳ Step 4/4: Converting MusicXML to PDF..."
-./main.py convert_musicxml_to_pdf --out-dir "${OUTPUT_DIR}" --convert-with-lilypond --convert-with-musescore "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
+./main.py --out-dir "${OUTPUT_DIR}" convert_musicxml_to_pdf --convert-with-lilypond --convert-with-musescore "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
 echo "✅ MusicXML to PDF conversion complete."
 echo "↪⏳ Validating PDFs were created..."
 PDF_OUTPUT_LILYPOND="${OUTPUT_DIR}/${BASENAME}.LilyPond.pdf.pdf"
