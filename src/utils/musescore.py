@@ -31,7 +31,7 @@ def _detect_musescore() -> str | None:
     logger.warning("Could not find musescore executable.")
     return None
 
-def convert_musicxml_to_pdf(musicxml_path: str, *, overwrite: bool = False) -> Path:
+def convert_musicxml_to_pdf(musicxml_path: str, out_dir: Path, overwrite: bool = False) -> Path:
     """
     Render a MusicXML/MXL file to PDF with MuseScore.
     Output file is <stem>.MuseScore.pdf in the same directory.
@@ -47,7 +47,7 @@ def convert_musicxml_to_pdf(musicxml_path: str, *, overwrite: bool = False) -> P
     if not mscore:
         raise RuntimeError("MuseScore executable not found.")
 
-    out_dir, stem = src.parent, src.stem
+    stem = src.stem
     us = environment.UserSettings()
     us["musicxmlPath"] = mscore
     us['musescoreDirectPNGPath'] = mscore

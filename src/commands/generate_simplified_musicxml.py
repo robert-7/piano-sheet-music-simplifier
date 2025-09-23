@@ -15,6 +15,7 @@ from agents import Runner
 from agents import set_default_openai_client
 
 from src.commands import generate_analysis_of_musicxml
+from src.utils import fs_utils
 from src.utils import score_utils
 from src.utils.template_utils import render_template_file
 
@@ -43,7 +44,7 @@ def _minify_xml_preserving_text(xml: str) -> str:
     xml = re.sub(r'>\s+<', '><', xml)
     return xml.strip()
 
-def generate_simplified_musicxml(musicxml_path: str, use_agent: bool, run_model_response_in_background: bool) -> None:
+def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: bool, run_model_response_in_background: bool) -> None:
     """
     Generates a simplified version of a MusicXML file using an AI agent.
     """
@@ -178,17 +179,19 @@ def generate_simplified_musicxml(musicxml_path: str, use_agent: bool, run_model_
         simplified_musicxml = xml_match.group(1).strip()
 
         # Save the simplified MusicXML to a new file
-        if suggested_filename:
-            musicxml_output_path = p.with_name(suggested_filename)
-        else:
-            musicxml_output_path = p.with_name(f"{p.stem}_simplified.musicxml")
+        if not out_dir.exists():
+            raise FileNotFoundError(f"Output directory does not exist: {out_dir}")
+        if not out_dir.is_dir():
+            raise NotADirectoryError(f"Output path is not a directory: {out_dir}")
 
         # Save the full output to a .txt file for debugging
-        full_output_path = p.with_name(f"{p.stem}_simplified_all_output.txt")
+        full_output_path = out_dir / f"{p.stem}_simplified_all_output.txt"
         with open(full_output_path, "w", encoding="utf-8") as f:
             f.write(full_output)
         logger.info(f"✅ Full output (explanation + MusicXML) saved to: {full_output_path}")
 
+        # Save the simplified MusicXML to a new file
+        musicxml_output_path = out_dir / f"{p.stem}_simplified.musicxml"
         with open(musicxml_output_path, "w") as f:
             f.write(simplified_musicxml)
         logger.info(f"✅ Simplified MusicXML saved to: {musicxml_output_path}")

@@ -71,6 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
     # --- Sub-parser for convert_musicxml_to_pdf ---
     convert_parser = subparsers.add_parser("convert_musicxml_to_pdf", help="Convert a MusicXML file to PDF.")
     convert_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
+    convert_parser.add_argument("--out-dir", type=Path, default=default_out_dir, help="Output directory")
     convert_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing PDF files.")
     # TODO: Lilipond output isn't as good as MuseScore
     convert_parser.add_argument("--convert-with-lilypond", action="store_true", default=False, help="Use LilyPond to convert to PDF (default: True)")
@@ -114,11 +115,12 @@ def main():
         if args.manual:
             generate_simplified_musicxml.generate_chatgpt_prompts_for_simplified_musicxml(args.musicxml_path, args.out_dir)
         else:
-            generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path, args.use_agent, args.run_model_response_in_background)
+            generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path, args.out_dir, args.use_agent, args.run_model_response_in_background)
 
     elif args.command == "convert_musicxml_to_pdf":
         convert_musicxml_to_pdf.convert_musicxml_to_pdf(
-            args.musicxml_path, convert_with_lilypond=args.convert_with_lilypond, convert_with_musescore=args.convert_with_musescore, overwrite=args.overwrite
+            args.musicxml_path, args.out_dir,
+            convert_with_lilypond=args.convert_with_lilypond, convert_with_musescore=args.convert_with_musescore, overwrite=args.overwrite
         )
 
 
