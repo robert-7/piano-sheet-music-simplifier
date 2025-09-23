@@ -35,6 +35,8 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 * Discover available sub-commands and options:
     * `python main.py -h`
     * `python main.py <sub-command> -h`
+* End-to-end in one command (PDF → simplified PDF):
+    * `./main.py generate_simplified_pdf user/input/Your_Score.pdf`
 * Create a simplified MusicXML (automatic, recommended):
     * `python main.py generate_simplified_musicxml user/input/Your_Score.musicxml`
 * Create manual prompts (alternative):
@@ -42,7 +44,12 @@ See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and
 
 ## Developer Workflows
 
-### Typical run
+### End-to-End run
+
+1. End-to-end in one command (PDF → simplified PDF):
+    * `./main.py generate_simplified_pdf user/input/Your_Score.pdf`
+
+### Run one command at a time
 
 1. Convert a PDF to MusicXML:
     * `python main.py convert_pdf_to_musicxml user/input/Your_Score.pdf`
@@ -83,6 +90,8 @@ Inputs are never modified; outputs go to the directory specified by the global `
 
 ## Examples
 
+* End-to-end (PDF → simplified PDF):
+    * `./main.py generate_simplified_pdf user/input/your_file.pdf`
 * Convert PDF → MusicXML:
     * `python main.py convert_pdf_to_musicxml user/input/your_file.pdf`
 * Analyze MusicXML:

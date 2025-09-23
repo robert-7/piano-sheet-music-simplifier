@@ -17,7 +17,9 @@ def which_exe(candidates: list[str]) -> str | None:
         p = shutil.which(c)
         if p:
             return p
-    return None
+    raise RuntimeError(
+        "Audiveris executable not found. Put it on PATH or pass --audiveris /path/to/audiveris"
+    )
 
 
 def check_java() -> None:
@@ -39,7 +41,6 @@ class ConversionResult:
 def run_audiveris(
     input_paths: list[Path],
     out_dir: Path,
-    audiveris_cmd: str | None = None,
     batch: bool = True,
     export: bool = True,
     timeout_sec: int = 1800,
@@ -50,12 +51,7 @@ def run_audiveris(
     """
     fs_utils.ensure_dir(out_dir)
 
-    if not audiveris_cmd:
-        audiveris_cmd = which_exe(["audiveris", "audiveris.bat"])
-    if not audiveris_cmd:
-        raise RuntimeError(
-            "Audiveris executable not found. Put it on PATH or pass --audiveris /path/to/audiveris"
-        )
+    audiveris_cmd = which_exe(["audiveris", "audiveris.bat"])
 
     args = [audiveris_cmd]
     if batch:
@@ -98,7 +94,6 @@ def convert_pdf_to_musicxml(
     out_dir: Path,
     prefer_rasterize: bool = True,
     dpi: int = 400,
-    audiveris_path: str | None = None,
 ) -> ConversionResult:
     """
     Convert a PDF score to MusicXML/MXL.
@@ -120,4 +115,4 @@ def convert_pdf_to_musicxml(
             image_utils.preprocess_images_inplace(img_paths)
 
     inputs = img_paths if img_paths else [pdf_path]
-    return run_audiveris(inputs, out_dir=out_dir, audiveris_cmd=audiveris_path)
+    return run_audiveris(inputs, out_dir=out_dir)

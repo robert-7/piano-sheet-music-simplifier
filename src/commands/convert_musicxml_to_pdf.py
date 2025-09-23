@@ -48,7 +48,8 @@ def convert_musicxml_to_pdfs(
     return results
 
 
-def convert_musicxml_to_pdf(musicxml_path: str, out_dir: Path, convert_with_lilypond: bool, convert_with_musescore: bool, overwrite: bool):
+def convert_musicxml_to_pdf(musicxml_path: str, out_dir: Path, convert_with_lilypond: bool, convert_with_musescore: bool, overwrite: bool) -> Dict[str, Path]:
     outputs = convert_musicxml_to_pdfs(musicxml_path, out_dir, convert_with_lilypond=convert_with_lilypond, convert_with_musescore=convert_with_musescore, overwrite=overwrite)
     for backend, path in outputs.items():
         logger.info(f"✅ The PDF can be found in: {backend} → {path}")
+    return outputs
