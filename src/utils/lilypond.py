@@ -28,7 +28,7 @@ def _detect_lilypond() -> str | None:
     logger.warning("Could not find lilypond executable.")
     return None
 
-def convert_musicxml_to_pdf(musicxml_path: str, *, overwrite: bool = False) -> Path:
+def convert_musicxml_to_pdf(musicxml_path: str, out_dir: Path, overwrite: bool = False) -> Path:
     """
     Render a MusicXML/MXL file to PDF with LilyPond.
     Output file is <stem>.LilyPond.pdf in the same directory.
@@ -44,7 +44,7 @@ def convert_musicxml_to_pdf(musicxml_path: str, *, overwrite: bool = False) -> P
     if not lily:
         raise RuntimeError("LilyPond executable not found.")
 
-    out_dir, stem = src.parent, src.stem
+    stem = src.stem
     us = environment.UserSettings()
     us["lilypondPath"] = lily
     dst = out_dir / f"{stem}.LilyPond.pdf"
