@@ -11,7 +11,7 @@
 
 ## Environment Setup
 
-* OS: Ubuntu recommended. Python: 3.10–3.13 supported.
+* OS: Ubuntu recommended. Python: 3.10-3.13 supported.
 * Use a virtual environment:
     * `python -m venv .venv && source .venv/bin/activate`
     * `pip install -r requirements.txt`

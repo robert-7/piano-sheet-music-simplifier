@@ -53,7 +53,7 @@ def analyze_harmony(
     for c in chords:
         pcs = set(c.pitchClasses)
         if len(pcs) < min_notes_per_chord:
-            # Treat single-note “chords” as melody; still collect pitch classes.
+            # Treat single-note "chords" as melody; still collect pitch classes.
             pitch_classes.update(pcs)
             continue
 
