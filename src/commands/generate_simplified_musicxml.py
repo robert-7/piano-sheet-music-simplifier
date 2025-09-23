@@ -196,15 +196,31 @@ def generate_simplified_musicxml(musicxml_path: str, use_agent: bool, run_model_
     except Exception as e:
         logger.error(f"An error occurred: {e}")
 
-def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str) -> None:
+def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str, out_dir: Path) -> None:
     """
-    Generates ChatGPT prompts for a given MusicXML file.
+    Generates ChatGPT prompts for a given MusicXML file and writes them to a single file in out_dir.
+    Assumes out_dir already exists and is a directory (caller is responsible for creation).
     """
     base_for_prompts = Path('src/piano_learning/resources')
     base_file_name = Path(musicxml_path).stem
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     ctx = {"BASENAME": base_file_name, "TIMESTAMP": timestamp}
 
-    print(render_template_file(base_for_prompts / 'system_instructions_for_chatgpt.j2', ctx))
-    print('\n' + '='*80 + '\n')
-    print(render_template_file(base_for_prompts / 'user_prompt_for_chatgpt.j2', ctx))
+    system_prompt = render_template_file(base_for_prompts / 'system_instructions_for_chatgpt.j2', ctx)
+    user_prompt = render_template_file(base_for_prompts / 'user_prompt_for_chatgpt.j2', ctx)
+
+    # Validate out_dir is provided by the caller and exists
+    if not out_dir.exists():
+        raise FileNotFoundError(f"Output directory does not exist: {out_dir}")
+    if not out_dir.is_dir():
+        raise NotADirectoryError(f"Output path is not a directory: {out_dir}")
+
+    out_path = out_dir / f"{base_file_name}_{timestamp}_simplification_prompts.txt"
+    content = (
+        f"{system_prompt}\n\n"
+        + "=" * 80 + "\n\n"
+        f"{user_prompt}\n"
+    )
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    logger.info(f"✅ Prompts written to: {out_path}")

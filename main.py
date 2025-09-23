@@ -61,9 +61,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     # --- Sub-parser for generate_simplified_musicxml ---
     simplify_parser = subparsers.add_parser("generate_simplified_musicxml", help="Generate a simplified version of the piece in a given MusicXML file (as a MusicXML file).")
-    # TODO: Add --out-dir option to specify output directory
-    # simplify_parser.add_argument("--out-dir", default=default_out_dir, help="Output directory")
     simplify_parser.add_argument("musicxml_path", help="Path to the original MusicXML or MXL file")
+    simplify_parser.add_argument("--out-dir", type=Path, default=default_out_dir, help="Output directory")
     simplify_parser.add_argument("--manual", action="store_true", help="Generate manual prompt files for review, but do not call the AI API")
     # TODO: Change default to True after issuue with GPT-5 and agents is resolved
     simplify_parser.add_argument("--use-agent", action="store_true", default=False, help="Use the OpenAI API with an agent")
@@ -113,7 +112,7 @@ def main():
 
     elif args.command == "generate_simplified_musicxml":
         if args.manual:
-            generate_simplified_musicxml.generate_chatgpt_prompts_for_simplified_musicxml(args.musicxml_path)
+            generate_simplified_musicxml.generate_chatgpt_prompts_for_simplified_musicxml(args.musicxml_path, args.out_dir)
         else:
             generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path, args.use_agent, args.run_model_response_in_background)
 
