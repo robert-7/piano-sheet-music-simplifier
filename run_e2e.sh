@@ -8,6 +8,9 @@
 # 2. Performs harmony analysis on the generated MusicXML file.
 # 3. Converts the MusicXML file back into a PDF.
 #
+# Outputs are written to a timestamped directory under user/output/, e.g.:
+# user/output/2025-01-31_12-34-56/
+#
 # The script is designed to exit immediately if any command fails.
 # ==============================================================================
 
@@ -32,7 +35,7 @@ echo "🚀 Starting end-to-end music processing for: $INPUT_PDF"
 # 1. Define a unique output directory using the current timestamp.
 # This keeps each run's output separate.
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-OUTPUT_DIR="user/output-${TIMESTAMP}"
+OUTPUT_DIR="user/output/${TIMESTAMP}"
 mkdir -p "${OUTPUT_DIR}"
 LOG_FILE="${OUTPUT_DIR}/run_e2e.log"
 
@@ -86,7 +89,7 @@ echo
 # 4. Convert the MusicXML file back to a PDF.
 echo "⏳ Step 3/3: Converting MusicXML to PDF..."
 # TODO: Consider adding --out-dir "${OUTPUT_DIR}" if supported by the command.
-./main.py convert_musicxml_to_pdf "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
+./main.py convert_musicxml_to_pdf --convert-with-lilypond --convert-with-musescore "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
 echo "✅ MusicXML to PDF conversion complete."
 echo "↪⏳ Validating PDFs were created..."
 PDF_OUTPUT_LILYPOND="${OUTPUT_DIR}/${BASENAME}.LilyPond.pdf.pdf"
