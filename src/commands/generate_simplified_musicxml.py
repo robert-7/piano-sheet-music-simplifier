@@ -49,7 +49,7 @@ def generate_simplified_musicxml(musicxml_path: str, use_agent: bool, run_model_
     """
     try:
         analysis = generate_analysis_of_musicxml.build_analysis_bundle(musicxml_path)
-        analysis_json = json.dumps(analysis, ensure_ascii=False, indent=None, separators=(',', ':'))
+        analysis_compact_json = json.dumps(analysis, ensure_ascii=False, indent=None, separators=(',', ':'))
         with open(musicxml_path, encoding="utf-8") as f:
             musicxml_content = f.read()
         musicxml_content = _minify_xml_preserving_text(musicxml_content)
@@ -75,7 +75,7 @@ def generate_simplified_musicxml(musicxml_path: str, use_agent: bool, run_model_
             "```\n\n"
             "Here is the harmony analysis JSON (inline attachment):\n"
             "```json\n"
-            f"{analysis_json}\n"
+            f"{analysis_compact_json}\n"
             "```\n"
         )
         logger.debug(query)
@@ -115,7 +115,7 @@ def generate_simplified_musicxml(musicxml_path: str, use_agent: bool, run_model_
                 model="gpt-5",
                 instructions=system_prompt,
                 input=query,
-                background=True,           # <-- long-running job
+                background=True, # run this in the background and poll for results
             )
             times_slept, minutes_to_sleep_in_seconds = 0, 60
             while True:
@@ -126,9 +126,10 @@ def generate_simplified_musicxml(musicxml_path: str, use_agent: bool, run_model_
                 elif r.status in ("failed", "cancelled"):
                     raise RuntimeError(f"Job {r.status}. Result: {r}")
                 elif r.status in ("queued", "in_progress"):
-                    logger.info(f"Pending job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
+                    emoji = "⏳" if r.status in ("queued") else "🛠️"
+                    logger.info(f"{emoji} Pending job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
                 else:
-                    logger.info(f"Unrecognized job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
+                    logger.info(f"🤨 Unrecognized job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
                 times_slept += 1
                 time.sleep(minutes_to_sleep_in_seconds)
         elif False:
@@ -178,13 +179,19 @@ def generate_simplified_musicxml(musicxml_path: str, use_agent: bool, run_model_
 
         # Save the simplified MusicXML to a new file
         if suggested_filename:
-            output_path = p.with_name(suggested_filename)
+            musicxml_output_path = p.with_name(suggested_filename)
         else:
-            output_path = p.with_name(f"{p.stem}_simplified.musicxml")
-        with open(output_path, "w") as f:
-            f.write(simplified_musicxml)
+            musicxml_output_path = p.with_name(f"{p.stem}_simplified.musicxml")
 
-        logger.info(f"✅ Simplified MusicXML saved to: {output_path}")
+        # Save the full output to a .txt file for debugging
+        full_output_path = p.with_name(f"{p.stem}_simplified_all_output.txt")
+        with open(full_output_path, "w", encoding="utf-8") as f:
+            f.write(full_output)
+        logger.info(f"✅ Full output (explanation + MusicXML) saved to: {full_output_path}")
+
+        with open(musicxml_output_path, "w") as f:
+            f.write(simplified_musicxml)
+        logger.info(f"✅ Simplified MusicXML saved to: {musicxml_output_path}")
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")

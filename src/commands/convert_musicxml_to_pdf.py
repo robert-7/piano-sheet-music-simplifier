@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def convert_musicxml_to_pdfs(
-    musicxml_path: str, *, overwrite: bool = False
+    musicxml_path: str, convert_with_lilypond: bool, convert_with_musescore: bool, overwrite: bool
 ) -> Dict[str, Path]:
     """
     Render a MusicXML/MXL file to PDF with both LilyPond and MuseScore (when available).
@@ -22,22 +22,22 @@ def convert_musicxml_to_pdfs(
     errors: Dict[str, Exception] = {}
 
     key = "LilyPond"
-    try:
-        results[key] = lilypond.convert_musicxml_to_pdf(
-            musicxml_path, overwrite=overwrite
-        )
-    except (FileNotFoundError, RuntimeError) as e:
-        errors[key] = e
-        logger.error(f"{key} failed: {e}")
+    if convert_with_lilypond:
+        logger.info("Converting with LilyPond...")
+        try:
+            results[key] = lilypond.convert_musicxml_to_pdf(musicxml_path, overwrite=overwrite)
+        except (FileNotFoundError, RuntimeError) as e:
+            errors[key] = e
+            logger.error(f"{key} failed: {e}")
 
     key = "MuseScore"
-    try:
-        results[key] = musescore.convert_musicxml_to_pdf(
-            musicxml_path, overwrite=overwrite
-        )
-    except (FileNotFoundError, RuntimeError) as e:
-        errors[key] = e
-        logger.error(f"{key} failed: {e}")
+    if convert_with_musescore:
+        logger.info("Converting with MuseScore...")
+        try:
+            results[key] = musescore.convert_musicxml_to_pdf(musicxml_path, overwrite=overwrite)
+        except (FileNotFoundError, RuntimeError) as e:
+            errors[key] = e
+            logger.error(f"{key} failed: {e}")
 
     if not results:
         msg = ["Could not generate a PDF with LilyPond or MuseScore."]
@@ -48,7 +48,7 @@ def convert_musicxml_to_pdfs(
     return results
 
 
-def convert_musicxml_to_pdf(musicxml_path: str, overwrite: bool):
-    outputs = convert_musicxml_to_pdfs(musicxml_path, overwrite=overwrite)
+def convert_musicxml_to_pdf(musicxml_path: str, convert_with_lilypond: bool, convert_with_musescore: bool, overwrite: bool):
+    outputs = convert_musicxml_to_pdfs(musicxml_path, convert_with_lilypond=convert_with_lilypond, convert_with_musescore=convert_with_musescore, overwrite=overwrite)
     for backend, path in outputs.items():
         logger.info(f"✅ The PDF can be found in: {backend} → {path}")

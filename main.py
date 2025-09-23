@@ -36,6 +36,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Create the top-level parser with sub-commands
     parser = argparse.ArgumentParser(description="Process sheet music files: analyze harmony, convert to PDF, or process PDFs.")
+    # NEW: global log file option (logs to console and this file)
+    parser.add_argument(
+        "--log-file",
+        type=Path,
+        default=default_out_dir / "piano_learning.log",
+        help="Path to a log file (console logs are also emitted).",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
 
     # --- Sub-parser for convert_pdf_to_musicxml ---
@@ -66,6 +73,9 @@ def build_parser() -> argparse.ArgumentParser:
     convert_parser = subparsers.add_parser("convert_musicxml_to_pdf", help="Convert a MusicXML file to PDF.")
     convert_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
     convert_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing PDF files.")
+    # TODO: Lilipond output isn't as good as MuseScore
+    convert_parser.add_argument("--convert-with-lilypond", action="store_true", default=False, help="Use LilyPond to convert to PDF (default: True)")
+    convert_parser.add_argument("--convert-with-musescore", action="store_true", default=True, help="Use MuseScore to convert to PDF (default: True)")
 
     return parser
 
@@ -74,7 +84,16 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    # Ensure log directory exists, then configure logging to both console and file
+    fs_utils.ensure_dir(Path(args.log_file).parent)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(args.log_file, encoding="utf-8"),
+        ],
+    )
 
     if args.command == "convert_pdf_to_musicxml":
         convert_pdf_to_musicxml.convert_pdf_to_musicxml(
@@ -99,7 +118,9 @@ def main():
             generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path, args.use_agent, args.run_model_response_in_background)
 
     elif args.command == "convert_musicxml_to_pdf":
-        convert_musicxml_to_pdf.convert_musicxml_to_pdf(args.musicxml_path, args.overwrite)
+        convert_musicxml_to_pdf.convert_musicxml_to_pdf(
+            args.musicxml_path, convert_with_lilypond=args.convert_with_lilypond, convert_with_musescore=args.convert_with_musescore, overwrite=args.overwrite
+        )
 
 
 if __name__ == "__main__":
