@@ -17,6 +17,13 @@ repos:
       - id: pretty-format-json
         args: ['--no-sort-keys', '--autofix']
 
+  - repo: https://github.com/sirosen/texthooks
+    rev: 0.7.1
+    hooks:
+      - id: fix-smartquotes
+      - id: fix-spaces
+      - id: fix-unicode-dashes
+
   # python linting
   - repo: https://github.com/asottile/reorder_python_imports
     rev: v3.15.0

@@ -8,7 +8,7 @@ Please reference [SETUP.md](SETUP.md) for setup steps.
 
 Given a sheet located at `user/input/Difficult_Sheet_Music.pdf`.
 
-### Option A — One command end-to-end (PDF → simplified PDF)
+### Option A -- One command end-to-end (PDF → simplified PDF)
 
 Run the entire pipeline in one step:
 
@@ -16,7 +16,7 @@ Run the entire pipeline in one step:
 
 Note: Outputs are written to a timestamped directory under `user/output/` unless you pass `--out-dir`.
 
-### Option B — Advanced: run individual steps
+### Option B -- Advanced: run individual steps
 
 1. Convert a PDF to MusicXML:
     * `python main.py convert_pdf_to_musicxml user/input/Difficult_Sheet_Music.pdf`

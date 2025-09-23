@@ -17,7 +17,7 @@ CONSTRAINTS
   3. Use harmonies and keys to place LH chord changes on harmonic rhythm; do not infer new chords unless a span is missing.
   4. Follow lhTexturePlan verbatim for each measure range; if absent, choose textures using the default meter-based priority (3/4 vs 4/4 vs 6/8).
   5. Respect rendererLimits (max simultaneity, smallest LH value, max leaps/spans).
-  6. If conflicts arise (e.g., chord quality vs notated accidentals), prefer the score’s accidentals and adjust only the conflicting span.
+  6. If conflicts arise (e.g., chord quality vs notated accidentals), prefer the score's accidentals and adjust only the conflicting span.
 * Notation validity: emit MusicXML 4.0 partwise with consistent <divisions>, correct key/time, voices tidy (single LH voice), no cross-staff. Compatible with Lilypond, MuseScore and music21. No external links/fonts.
 * Range guidance: LH bass mostly ≤ C4; RH mostly ≥ middle C unless original dictates otherwise.
 * Tempo: keep original tempo marks; if LH would exceed eighth-note motion above 120 BPM, prefer blocked chords per beat/half-bar.

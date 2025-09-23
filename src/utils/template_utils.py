@@ -15,7 +15,15 @@ def _env_for(base_dir: Path) -> Environment:
     Uses StrictUndefined to fail fast on missing variables.
     """
     loader = FileSystemLoader(str(base_dir))
-    env = Environment(loader=loader, autoescape=False, undefined=StrictUndefined, trim_blocks=True, lstrip_blocks=True)
+    env = Environment(
+        loader=loader,
+        autoescape=False,          # plain-text system prompts
+        undefined=StrictUndefined, # fail fast on missing vars
+        trim_blocks=False,         # <-- keep your newlines
+        lstrip_blocks=False,       # <-- keep your leading spaces
+        keep_trailing_newline=True # optional: stable trailing newline
+        # newline_sequence="\n",   # optional: normalize to LF
+    )
     return env
 
 

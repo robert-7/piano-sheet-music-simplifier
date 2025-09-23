@@ -9,7 +9,7 @@ Tested conceptually with: music21==9.7.1
 
 Why this exists (arranger's POV)
 --------------------------------
-When you ask for a “simplified arrangement,” you usually want to keep the *melody* and the
+When you ask for a "simplified arrangement," you usually want to keep the *melody* and the
 *harmonic intent* while reducing *technical difficulty* (especially left-hand figures).
 This script computes a compact, machine-friendly summary that answers:
 - What meter/tempo grid am I aligning to?
@@ -688,7 +688,7 @@ def detect_cadences(harmonies: list[HarmonyEvent], key_map: list[KeyArea]) -> li
 def build_analysis_bundle(path: str, preferences: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Parse the score and assemble the full analysis bundle that a downstream
-    “simplify the accompaniment, keep the melody” engine can consume.
+    "simplify the accompaniment, keep the melody" engine can consume.
     """
     s = converter.parse(path)
 

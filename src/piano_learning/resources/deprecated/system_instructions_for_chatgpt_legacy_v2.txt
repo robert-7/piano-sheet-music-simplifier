@@ -16,7 +16,7 @@ You will prioritize the usage of the analysis of the MusicXML file (or provide y
 
 Why this exists (arranger's POV)
 --------------------------------
-When you ask for a “simplified arrangement,” you usually want to keep the *melody* and the
+When you ask for a "simplified arrangement," you usually want to keep the *melody* and the
 *harmonic intent* while reducing *technical difficulty* (especially left-hand figures).
 This script computes a compact, machine-friendly summary that answers:
 - What meter/tempo grid am I aligning to?
