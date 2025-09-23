@@ -12,7 +12,8 @@ Given a sheet located at `user/input/Difficult_Sheet_Music.pdf`.
 
 Run the entire pipeline in one step:
 
-* `python main.py generate_simplified_pdf user/input/Difficult_Sheet_Music.pdf`
+* From PDF: `./main.py generate_simplified_pdf --pdf_path user/input/your_file.pdf`
+* From MusicXML: `./main.py generate_simplified_pdf --musicxml_path user/input/your_file.musicxml`
 
 Note: Outputs are written to a timestamped directory under `user/output/` unless you pass `--out-dir`.
 
