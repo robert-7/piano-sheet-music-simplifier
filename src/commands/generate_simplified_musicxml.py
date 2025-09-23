@@ -90,6 +90,7 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 # model="gpt-5",
                 model="gpt-5-mini",
                 instructions=system_prompt,
+                # TODO: Validate this. This parameter likely doesn't exist.
                 # Set generous output tokens to ensure full MusicXML can be generated
                 model_kwargs={"max_output_tokens": 16384, "response_format": {"type": "text"}},
             )
@@ -119,8 +120,11 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 instructions=system_prompt,
                 input=query,
                 background=True, # run this in the background and poll for results
-                max_output_tokens=16384,
-                response_format={"type": "text"},
+                # the standard output response consumes about 50k tokens:
+                # * the reasoning is about 5k token (on medium effort with auto summary level)
+                # * the completion is about 40k tokens
+                max_output_tokens=128000,
+                reasoning={"effort": "high", "summary": "detailed"},
             )
             times_slept, minutes_to_sleep_in_seconds = 0, 60
             while True:
@@ -137,37 +141,6 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                     logger.info(f"🤨 Unrecognized job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
                 times_slept += 1
                 time.sleep(minutes_to_sleep_in_seconds)
-        elif False:
-            client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=5)
-            set_default_openai_client(client)
-            logger.info("Generating simplified MusicXML with OpenAI Create...")
-            response = client.responses.create(
-                model="gpt-5",
-                # model="gpt-5-mini",
-                instructions=system_prompt,
-                input=query,
-                max_output_tokens=16384,
-                response_format={"type": "text"},
-            )
-            result = response.output_text
-            print(result)
-        elif False:
-            client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=5)
-            set_default_openai_client(client)
-            logger.info("Generating simplified MusicXML with OpenAI Stream...")
-            with client.responses.stream(
-                model="gpt-5",
-                # model="gpt-5-mini",
-                instructions=system_prompt,
-                input=query,
-                max_output_tokens=16384,
-                response_format={"type": "text"},
-            ) as stream:
-                for event in stream:
-                    if event.type == "response.output_text.delta":
-                        print(event.delta, end="", flush=True)
-                result = stream.get_final_response()
-                print(result)
 
         # Parse the response to extract XML and optional filename from the two-section format
         full_output = (result or "").strip()
