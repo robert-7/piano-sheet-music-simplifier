@@ -90,6 +90,8 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 # model="gpt-5",
                 model="gpt-5-mini",
                 instructions=system_prompt,
+                # Set generous output tokens to ensure full MusicXML can be generated
+                model_kwargs={"max_output_tokens": 16384, "response_format": {"type": "text"}},
             )
             logger.info("Generating simplified MusicXML with OpenAI Agent...")
             attempts = int(os.getenv("OPENAI_RUN_ATTEMPTS", "2"))
@@ -117,6 +119,8 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 instructions=system_prompt,
                 input=query,
                 background=True, # run this in the background and poll for results
+                max_output_tokens=16384,
+                response_format={"type": "text"},
             )
             times_slept, minutes_to_sleep_in_seconds = 0, 60
             while True:
@@ -142,6 +146,8 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 # model="gpt-5-mini",
                 instructions=system_prompt,
                 input=query,
+                max_output_tokens=16384,
+                response_format={"type": "text"},
             )
             result = response.output_text
             print(result)
@@ -154,6 +160,8 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 # model="gpt-5-mini",
                 instructions=system_prompt,
                 input=query,
+                max_output_tokens=16384,
+                response_format={"type": "text"},
             ) as stream:
                 for event in stream:
                     if event.type == "response.output_text.delta":
