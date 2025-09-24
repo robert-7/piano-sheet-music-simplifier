@@ -181,11 +181,12 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
         simplified_musicxml = xml_match.group(1).strip()
 
         # Save the all data to files for debugging
+        _write_data_to_file_and_log(analysis_compact_json, out_dir, p.stem, "analysis", "json")
         _write_data_to_file_and_log(system_prompt, out_dir, p.stem, "simplified_system_prompt", "txt")
         _write_data_to_file_and_log(user_prompt, out_dir, p.stem, "simplified_user_prompt", "txt")
         _write_data_to_file_and_log(reasoning, out_dir, p.stem, "simplified_reasoning", "txt")
         _write_data_to_file_and_log(full_output, out_dir, p.stem, "simplified_full_output", "txt")
-        musicxml_output_path = _write_data_to_file_and_log(simplified_musicxml, out_dir, p.stem, "simplified_musicxml", "musicxml")
+        musicxml_output_path = _write_data_to_file_and_log(simplified_musicxml, out_dir, p.stem, "simplified", "musicxml")
 
         return musicxml_output_path
 
