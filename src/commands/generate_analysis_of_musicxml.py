@@ -212,21 +212,6 @@ class Cadence:
     type: str
     key: str
 
-@dataclass
-class Preferences:
-    """
-    Downstream arranger preferences (defaults). Not analysis per se, but helps the
-    generator honor musical/ergonomic constraints without re-prompting.
-    """
-    keepMelodyExact: bool = True
-    lhStyle: str = "blockChords"
-    maxLHSpan: str = "10th"
-    allowOctaves: bool = True
-    dropNCTs: bool = True
-    keepTuplets: bool = False
-    pedalPolicy: str = "cadencesOnly"
-    noShortening: bool = True
-
 # -------------------------------
 # Extractors
 # -------------------------------
@@ -712,7 +697,6 @@ def build_analysis_bundle(path: str, preferences: dict[str, Any] | None = None) 
         "nctMask": [asdict(e) for e in nct],
         "ranges": asdict(rng),
         "cadences": [asdict(c) for c in cad],
-        "preferences": preferences or asdict(Preferences()),
     }
     return to_jsonable(bundle)
 
