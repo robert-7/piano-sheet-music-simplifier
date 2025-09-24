@@ -13,7 +13,6 @@ from agents import Agent
 from agents import function_tool
 from agents import Runner
 from agents import set_default_openai_client
-from openai.types.responses import response_status
 
 from src.commands import generate_analysis_of_musicxml
 from src.utils import fs_utils
@@ -118,6 +117,7 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                         raise
             result = result.final_output
         elif run_model_response_in_background:
+            # TODO: Remove this. This is a workaround only for agents. The defaults work just fine in this scenario.
             client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=2)
             set_default_openai_client(client)
             logger.info("Generating simplified MusicXML with OpenAI Create with background=True...")
@@ -137,14 +137,14 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
             times_slept, minutes_to_sleep_in_seconds = 0, 60
             while True:
                 r = client.responses.retrieve(start.id)
-                if r.status not in response_status.ResponseStatus:
+                if r.status not in ['completed', 'failed', 'in_progress', 'cancelled', 'queued', 'incomplete']:
                     raise RuntimeError(f"Unrecognized response status: {r.status}. Full response: {r}")
                 elif r.status in ("failed", "cancelled", "incomplete"):
                     raise RuntimeError(f"Job {r.status}. Result: {r}")
                 elif r.status == "completed":
                     logger.info("OpenAI Call status completed. Parsing output_text and reasoning...")
                     result = r.output_text
-                    reasoning = r.reasoning
+                    reasoning = r.reasoning.summary
                     break
                 else:
                     emoji = "⏳" if r.status in ("queued") else "🛠️"
@@ -168,6 +168,18 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
             raise RuntimeError("Model response did not contain a MusicXML code block.")
 
         simplified_musicxml = xml_match.group(1).strip()
+
+        # Save the system_prompt to a .txt file for debugging
+        system_prompt_path = out_dir / f"{p.stem}_simplified_system_prompt.txt"
+        with open(system_prompt_path, "w", encoding="utf-8") as f:
+            f.write(system_prompt)
+        logger.info(f"✅ System prompt saved to: {system_prompt_path}")
+
+        # Save the user_prompt to a .txt file for debugging
+        user_prompt_path = out_dir / f"{p.stem}_simplified_user_prompt.txt"
+        with open(user_prompt_path, "w", encoding="utf-8") as f:
+            f.write(user_prompt)
+        logger.info(f"✅ User prompt saved to: {user_prompt_path}")
 
         # Save the reasoning to a .txt file for debugging
         reasoning_path = out_dir / f"{p.stem}_simplified_reasoning.txt"

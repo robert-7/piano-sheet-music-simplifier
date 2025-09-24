@@ -6719,15 +6719,5 @@
       "max": "G4"
     }
   },
-  "cadences": [],
-  "preferences": {
-    "keepMelodyExact": true,
-    "lhStyle": "blockChords",
-    "maxLHSpan": "10th",
-    "allowOctaves": true,
-    "dropNCTs": true,
-    "keepTuplets": false,
-    "pedalPolicy": "cadencesOnly",
-    "noShortening": true
-  }
+  "cadences": []
 }
