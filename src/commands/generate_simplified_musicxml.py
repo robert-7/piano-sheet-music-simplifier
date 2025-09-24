@@ -13,6 +13,7 @@ from agents import Agent
 from agents import function_tool
 from agents import Runner
 from agents import set_default_openai_client
+from openai.types.responses import response_status
 
 from src.commands import generate_analysis_of_musicxml
 from src.utils import fs_utils
@@ -49,6 +50,12 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
     Generates a simplified version of a MusicXML file using an AI agent.
     """
     try:
+        # Save the simplified MusicXML to a new file
+        if not out_dir.exists():
+            raise FileNotFoundError(f"Output directory does not exist: {out_dir}")
+        if not out_dir.is_dir():
+            raise NotADirectoryError(f"Output path is not a directory: {out_dir}")
+
         analysis = generate_analysis_of_musicxml.build_analysis_bundle(musicxml_path)
         analysis_compact_json = json.dumps(analysis, ensure_ascii=False, indent=None, separators=(',', ':'))
         with open(musicxml_path, encoding="utf-8") as f:
@@ -90,6 +97,9 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 # model="gpt-5",
                 model="gpt-5-mini",
                 instructions=system_prompt,
+                # TODO: Validate this. This parameter likely doesn't exist.
+                # Set generous output tokens to ensure full MusicXML can be generated
+                model_kwargs={"max_output_tokens": 16384, "response_format": {"type": "text"}},
             )
             logger.info("Generating simplified MusicXML with OpenAI Agent...")
             attempts = int(os.getenv("OPENAI_RUN_ATTEMPTS", "2"))
@@ -106,7 +116,6 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                         time.sleep(backoff)
                     else:
                         raise
-            print(result)
             result = result.final_output
         elif run_model_response_in_background:
             client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=2)
@@ -117,49 +126,31 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 instructions=system_prompt,
                 input=query,
                 background=True, # run this in the background and poll for results
+                # the standard output response consumes about 55k tokens (for a typical 2-page piece):
+                # * the reasoning is about 12k token (on high effort with detailed summary level)
+                # * the completion is about 43k tokens
+                max_output_tokens=128000,
+                # note: maxing out the reasoning effort to force the model to focus providing the most well-thought-out response
+                # note: maxing out the reasoning summary to get the most detailed explanation of changes
+                reasoning={"effort": "high", "summary": "detailed"},
             )
             times_slept, minutes_to_sleep_in_seconds = 0, 60
             while True:
                 r = client.responses.retrieve(start.id)
-                if r.status == "completed":
-                    result = r.output_text
-                    break
-                elif r.status in ("failed", "cancelled"):
+                if r.status not in response_status.ResponseStatus:
+                    raise RuntimeError(f"Unrecognized response status: {r.status}. Full response: {r}")
+                elif r.status in ("failed", "cancelled", "incomplete"):
                     raise RuntimeError(f"Job {r.status}. Result: {r}")
-                elif r.status in ("queued", "in_progress"):
-                    emoji = "⏳" if r.status in ("queued") else "🛠️"
-                    logger.info(f"{emoji} Pending job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
+                elif r.status == "completed":
+                    logger.info("OpenAI Call status completed. Parsing output_text and reasoning...")
+                    result = r.output_text
+                    reasoning = r.reasoning
+                    break
                 else:
-                    logger.info(f"🤨 Unrecognized job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 20 minutes (so far waited {times_slept}m)...")
-                times_slept += 1
-                time.sleep(minutes_to_sleep_in_seconds)
-        elif False:
-            client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=5)
-            set_default_openai_client(client)
-            logger.info("Generating simplified MusicXML with OpenAI Create...")
-            response = client.responses.create(
-                model="gpt-5",
-                # model="gpt-5-mini",
-                instructions=system_prompt,
-                input=query,
-            )
-            result = response.output_text
-            print(result)
-        elif False:
-            client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=5)
-            set_default_openai_client(client)
-            logger.info("Generating simplified MusicXML with OpenAI Stream...")
-            with client.responses.stream(
-                model="gpt-5",
-                # model="gpt-5-mini",
-                instructions=system_prompt,
-                input=query,
-            ) as stream:
-                for event in stream:
-                    if event.type == "response.output_text.delta":
-                        print(event.delta, end="", flush=True)
-                result = stream.get_final_response()
-                print(result)
+                    emoji = "⏳" if r.status in ("queued") else "🛠️"
+                    logger.info(f"{emoji} Pending job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 25 minutes (so far waited {times_slept}m)...")
+                    times_slept += 1
+                    time.sleep(minutes_to_sleep_in_seconds)
 
         # Parse the response to extract XML and optional filename from the two-section format
         full_output = (result or "").strip()
@@ -178,11 +169,11 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
 
         simplified_musicxml = xml_match.group(1).strip()
 
-        # Save the simplified MusicXML to a new file
-        if not out_dir.exists():
-            raise FileNotFoundError(f"Output directory does not exist: {out_dir}")
-        if not out_dir.is_dir():
-            raise NotADirectoryError(f"Output path is not a directory: {out_dir}")
+        # Save the reasoning to a .txt file for debugging
+        reasoning_path = out_dir / f"{p.stem}_simplified_reasoning.txt"
+        with open(reasoning_path, "w", encoding="utf-8") as f:
+            f.write(reasoning)
+        logger.info(f"✅ Reasoning saved to: {reasoning_path}")
 
         # Save the full output to a .txt file for debugging
         full_output_path = out_dir / f"{p.stem}_simplified_all_output.txt"
