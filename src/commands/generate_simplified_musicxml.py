@@ -144,7 +144,7 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 elif r.status == "completed":
                     logger.info("OpenAI Call status completed. Parsing output_text and reasoning...")
                     result = r.output_text
-                    reasoning = r.reasoning
+                    reasoning = r.reasoning.summary
                     break
                 else:
                     emoji = "⏳" if r.status in ("queued") else "🛠️"

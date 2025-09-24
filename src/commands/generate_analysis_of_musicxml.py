@@ -172,7 +172,7 @@ def _first_measure_is_pickup(sc: stream.Score) -> bool:
         if not measures:
             continue
         m0 = measures[0]
-        dur = sum(el.quarterLength for el in m0.flat.notesAndRests if hasattr(el, "quarterLength"))
+        dur = sum(el.quarterLength for el in m0.flatten().notesAndRests if hasattr(el, "quarterLength"))
         first_measure_qls.append(dur)
 
     if not first_measure_qls:
