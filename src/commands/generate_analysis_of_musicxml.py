@@ -43,10 +43,13 @@ import json
 import logging
 from dataclasses import asdict
 from dataclasses import dataclass
+from datetime import datetime
+from datetime import timezone
 from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Tuple
 
@@ -56,6 +59,7 @@ from music21 import chord
 from music21 import converter
 from music21 import duration
 from music21 import interval
+from music21 import metadata as m21metadata
 from music21 import meter
 from music21 import note
 from music21 import roman
@@ -105,9 +109,98 @@ def to_jsonable(obj):
     except TypeError:
         return str(obj)
 
+def _utc_iso_now() -> str:
+    """UTC timestamp in strict ISO-8601 with 'Z' suffix."""
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+def _detect_title(sc: stream.Score, fallback: str) -> str:
+    """
+    Best-effort title extraction:
+    1) score.metadata.title
+    2) first movement title
+    3) fallback (usually filename stem)
+    """
+    md: m21metadata.Metadata | None = getattr(sc, "metadata", None)
+    if md:
+        if md.title:
+            return str(md.title)
+        # music21 stores movements in metadata.movementName sometimes
+        if md.movementName:
+            return str(md.movementName)
+    return fallback
+
+def _first_timesig(sc: stream.Score) -> meter.TimeSignature | None:
+    """Return the first notated time signature found in the score, if any."""
+    ts = sc.recurse().getElementsByClass(meter.TimeSignature)
+    return ts[0] if ts else None
+
+def _measure_duration_ql(ts: meter.TimeSignature | None) -> float | None:
+    """Duration of one bar in quarterLength units for a given time signature."""
+    if not ts:
+        return None
+    # e.g., 3/4 -> 3 quarters, 6/8 -> 3 quarters (since 6/8 is 3 quarterLength if dotted quarter? careful)
+    # music21's .barDuration.quarterLength handles compound meters properly.
+    return float(ts.barDuration.quarterLength)
+
+def _has_measure_zero(sc: stream.Score) -> bool:
+    """True if any part has a measure numbered 0 (common for anacrusis)."""
+    for p in sc.parts:
+        for m in p.getElementsByClass(stream.Measure)[:3]:
+            if getattr(m, "number", None) == 0:
+                return True
+    return False
+
+def _first_measure_is_pickup(sc: stream.Score) -> bool:
+    """
+    Heuristic: treat the very first notated measure as pickup if:
+    - It is numbered 0; OR
+    - Its notated duration is strictly less than the barDuration implied by the first time signature.
+    This is robust across many engraved files; falls back to False if unknown.
+    """
+    if _has_measure_zero(sc):
+        return True
+
+    ts = _first_timesig(sc)
+    bar_ql = _measure_duration_ql(ts)
+    if bar_ql is None:
+        return False
+
+    # Compute the max actual duration across parts' first measures (to avoid empty staves biasing low)
+    first_measure_qls = []
+    for p in sc.parts:
+        measures = p.getElementsByClass(stream.Measure)
+        if not measures:
+            continue
+        m0 = measures[0]
+        dur = sum(el.quarterLength for el in m0.flat.notesAndRests if hasattr(el, "quarterLength"))
+        first_measure_qls.append(dur)
+
+    if not first_measure_qls:
+        return False
+
+    # If the fullest first measure is shorter than a full bar, assume pickup
+    return max(first_measure_qls) + 1e-6 < bar_ql  # tiny epsilon for floating error
+
 # -------------------------------
 # Data classes for output schema
 # -------------------------------
+
+AnalysisMode = Literal["notatedGrid", "linearized"]
+
+@dataclass
+class Provenance:
+    title: str
+    sourceFile: str
+    generatedAt: str  # ISO-8601 UTC timestamp
+    analysisMode: AnalysisMode  # "notatedGrid" (default) or "linearized"
+
+@dataclass
+class Conventions:
+    measureIndexing: Literal["1-based"]
+    pickupMeasureZero: bool
+    timebase: Literal["quarterLength"]
+    pitchUnits: Literal["MIDI+spelled"]
+    confidenceRange: Literal["[0,1]"]
 
 @dataclass
 class TimeSigSpan:
@@ -215,6 +308,48 @@ class Cadence:
 # -------------------------------
 # Extractors
 # -------------------------------
+
+def build_provenance(score: stream.Score, source_path: Path, analysis_mode: AnalysisMode = "notatedGrid") -> Provenance:
+    """
+    Build the 'provenance' block.
+
+    Why:
+      - 'title' and 'sourceFile' provide traceability and human context.
+      - 'generatedAt' makes runs comparable and cacheable.
+      - 'analysisMode' disambiguates whether repeats/voltas are respected (notatedGrid)
+        or unfolded for linear playback analytics (linearized).
+    """
+    title = _detect_title(score, fallback=source_path.stem)
+    prov = Provenance(
+        title=title,
+        sourceFile=str(source_path.name),
+        generatedAt=_utc_iso_now(),
+        analysisMode=analysis_mode,
+    )
+    return prov
+
+
+def build_conventions(score: stream.Score) -> Conventions:
+    """
+    Build the 'conventions' block.
+
+    Why:
+      - 'measureIndexing' declares bar-numbering policy (1-based for printed parity).
+      - 'pickupMeasureZero' flags whether the pickup is notated as measure 0 (common)
+        or folded into measure 1 with shortened duration.
+      - 'timebase' fixes rhythmic units (music21 uses quarterLength).
+      - 'pitchUnits' standardize pitch representation for downstream tools (MIDI ints + spelled names).
+      - 'confidenceRange' normalizes detector outputs to [0,1] for easy merging.
+    """
+    conventions = Conventions(
+        measureIndexing="1-based",
+        pickupMeasureZero=_has_measure_zero(score) or _first_measure_is_pickup(score),
+        timebase="quarterLength",
+        pitchUnits="MIDI+spelled",
+        confidenceRange="[0,1]",
+    )
+    return conventions
+
 
 def extract_metadata(s: stream.Score) -> Metadata:
     """
@@ -341,8 +476,10 @@ def describe_chord_quality(c: chord.Chord) -> tuple[str | None, int | None]:
 
 def extract_harmonies(s: stream.Score) -> list[HarmonyEvent]:
     """
-    Beat-aligned harmonies using chordify, with Roman numerals in local keys.
-    This drives: chord-tone detection, LH voicing choice, and harmonic rhythm.
+    Beat-aligned harmonies with Roman numerals in local keys.
+    Output is descriptive: events are anchored to (measure, beat) on the notated grid
+    and include confidence. Downstream tools may use these to infer chord-tone status
+    and harmonic rhythm.
     """
     chordified_score = s.chordify()
     # Normalize to a Stream/Part-like object; do not call removeDuplicates (may not exist)
@@ -403,7 +540,8 @@ def extract_harmonies(s: stream.Score) -> list[HarmonyEvent]:
 def extract_melody(s: stream.Score) -> list[MelodyEvent]:
     """
     Extract a single top-line melody to preserve exactly.
-    Heuristic: if there are multiple parts, assume parts[0] is RH and use its highest notes.
+    Records the selection strategy (e.g., highestNoteInPart0), merges ties, and flags ornaments.
+    Confidence is reduced where voices cross or ornaments obscure the principal line.
     """
     mel: list[MelodyEvent] = []
     rh = s.parts[0].flatten().notesAndRests if len(s.parts) >= 1 else s.flatten().notesAndRests
@@ -513,8 +651,9 @@ def classify_lh_texture(s: stream.Score) -> list[TextureSpan]:
 
 def build_nct_mask(s: stream.Score, harmonies: list[HarmonyEvent]) -> list[NCTEvent]:
     """
-    Very coarse chord-tone vs NCT tagging based on nearest harmony event.
-    These flags let a generator drop busy, non-essential tones in LH patterns.
+    Coarse chord-tone vs. NCT tagging relative to the nearest harmony event.
+    Descriptive only: emits binary/typed classification (passing, neighbor, suspension, etc.),
+    links to resolution targets, and includes confidence.
     """
     # Build a simple lookup by time
     h_times = [(h.offset, h) for h in harmonies]
@@ -670,44 +809,47 @@ def detect_cadences(harmonies: list[HarmonyEvent], key_map: list[KeyArea]) -> li
 # Orchestrator
 # -------------------------------
 
-def build_analysis_bundle(path: str, preferences: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_analysis_bundle(path: str) -> dict[str, Any]:
     """
     Parse the score and assemble the full analysis bundle that a downstream
     "simplify the accompaniment, keep the melody" engine can consume.
     """
     s = converter.parse(path)
 
-    md = extract_metadata(s)
+    provenance = build_provenance(s, source_path=Path(path))
+    conventions = build_conventions(s)
+    metadata = extract_metadata(s)
     keys = detect_key_map(s)
-    harms = extract_harmonies(s)
-    mel = extract_melody(s)
-    bass = extract_bassline(s)
-    tex = classify_lh_texture(s)
-    nct = build_nct_mask(s, harms)
-    rng = extract_ranges(s)
-    cad = detect_cadences(harms, keys)
+    harmonies = extract_harmonies(s)
+    melody = extract_melody(s)
+    bassline = extract_bassline(s)
+    left_hand_texture = classify_lh_texture(s)
+    nct_mask = build_nct_mask(s, harmonies)
+    ranges = extract_ranges(s)
+    cadences = detect_cadences(harmonies, keys)
 
     bundle = {
-        "metadata": asdict(md),
+        "provenance": asdict(provenance),
+        "conventions": asdict(conventions),
+        "metadata": asdict(metadata),
         "keys": [asdict(k) for k in keys],
-        "harmonies": [asdict(h) for h in harms],
-        "melody": [asdict(m) for m in mel],
-        "bassline": [asdict(b) for b in bass],
-        "textureLH": [asdict(t) for t in tex],
-        "nctMask": [asdict(e) for e in nct],
-        "ranges": asdict(rng),
-        "cadences": [asdict(c) for c in cad],
+        "harmonies": [asdict(h) for h in harmonies],
+        "melody": [asdict(m) for m in melody],
+        "bassline": [asdict(b) for b in bassline],
+        "textureLH": [asdict(t) for t in left_hand_texture],
+        "nctMask": [asdict(e) for e in nct_mask],
+        "ranges": asdict(ranges),
+        "cadences": [asdict(c) for c in cadences],
     }
     return to_jsonable(bundle)
 
 def generate_analysis_of_musicxml(musicxml_path: str,
-                                  preferences: dict[str, Any] | None = None,
                                   out_dir: str = ".") -> None:
     """
     Programmatic entry point: build and return the analysis bundle for a MusicXML file.
     Mirrors the legacy generate_legacy_analysis_of_musicxml() shape.
     """
-    bundle = build_analysis_bundle(musicxml_path, preferences)
+    bundle = build_analysis_bundle(musicxml_path)
 
     # Write to JSON file in out_dir with _analysis suffix
     basename = Path(musicxml_path).stem
