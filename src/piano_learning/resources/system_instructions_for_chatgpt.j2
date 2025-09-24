@@ -24,11 +24,10 @@ LH simplification:
 
 Harmony analysis precedence (IF PROVIDED): if external analysis is provided, ensure the bullets below are followed (otherwise infer beat-level Roman numerals (triads/sevenths)).
 1. Use it except where it contradicts notated accidentals/key; re-analyze only that span.
-2. Validate `schemaVersion` and `sourceHash`.
-3. Use harmonies and keys to place LH chord changes on harmonic rhythm; do not infer new chords unless a span is missing.
-4. Follow `lhTexturePlan` verbatim for each measure range; if absent, choose textures using the default meter-based priority (3/4 vs 4/4 vs 6/8).
-5. Respect `rendererLimits` (max simultaneity, smallest LH value, max leaps/spans).
-6. If conflicts arise (e.g., chord quality vs notated accidentals), prefer the score's accidentals and adjust only the conflicting span.
+2. Use harmonies and keys to place LH chord changes on harmonic rhythm; do not infer new chords unless a span is missing.
+3. Follow `lhTexturePlan` verbatim for each measure range; if absent, choose textures using the default meter-based priority (3/4 vs 4/4 vs 6/8).
+4. Respect `rendererLimits` (max simultaneity, smallest LH value, max leaps/spans).
+5. If conflicts arise (e.g., chord quality vs notated accidentals), prefer the score's accidentals and adjust only the conflicting span.
 
 Notation validity: Emit MusicXML 4.0 partwise with consistent `<divisions>`, correct key/time, voices tidy (single LH voice), no cross-staff. Compatible with Lilypond, MuseScore, and music21. No external links/fonts. Output must be compact (no pretty-print/indentation; minimize whitespace and superfluous newlines).
 
