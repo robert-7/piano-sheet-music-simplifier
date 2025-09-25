@@ -44,6 +44,17 @@ def _minify_xml_preserving_text(xml: str) -> str:
     xml = re.sub(r'>\s+<', '><', xml)
     return xml.strip()
 
+def _write_data_to_file_and_log(data_to_write: str, out_dir: Path, basename_prefix: str, basename_suffix: str, extension: str) -> Path:
+    """
+    Writes data to a file in out_dir with a name based on prefix and suffix.
+    """
+    # Save the data to a file for debugging
+    path = out_dir / f"{basename_prefix}_{basename_suffix}.{extension}"
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(data_to_write)
+    logger.info(f"✅ {basename_suffix} saved to: {path}")
+    return path
+
 def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: bool, run_model_response_in_background: bool) -> Path:
     """
     Generates a simplified version of a MusicXML file using an AI agent.
@@ -169,35 +180,14 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
 
         simplified_musicxml = xml_match.group(1).strip()
 
-        # Save the system_prompt to a .txt file for debugging
-        system_prompt_path = out_dir / f"{p.stem}_simplified_system_prompt.txt"
-        with open(system_prompt_path, "w", encoding="utf-8") as f:
-            f.write(system_prompt)
-        logger.info(f"✅ System prompt saved to: {system_prompt_path}")
+        # Save the all data to files for debugging
+        _write_data_to_file_and_log(analysis_compact_json, out_dir, p.stem, "analysis", "json")
+        _write_data_to_file_and_log(system_prompt, out_dir, p.stem, "simplified_system_prompt", "txt")
+        _write_data_to_file_and_log(user_prompt, out_dir, p.stem, "simplified_user_prompt", "txt")
+        _write_data_to_file_and_log(reasoning, out_dir, p.stem, "simplified_reasoning", "txt")
+        _write_data_to_file_and_log(full_output, out_dir, p.stem, "simplified_full_output", "txt")
+        musicxml_output_path = _write_data_to_file_and_log(simplified_musicxml, out_dir, p.stem, "simplified", "musicxml")
 
-        # Save the user_prompt to a .txt file for debugging
-        user_prompt_path = out_dir / f"{p.stem}_simplified_user_prompt.txt"
-        with open(user_prompt_path, "w", encoding="utf-8") as f:
-            f.write(user_prompt)
-        logger.info(f"✅ User prompt saved to: {user_prompt_path}")
-
-        # Save the reasoning to a .txt file for debugging
-        reasoning_path = out_dir / f"{p.stem}_simplified_reasoning.txt"
-        with open(reasoning_path, "w", encoding="utf-8") as f:
-            f.write(reasoning)
-        logger.info(f"✅ Reasoning saved to: {reasoning_path}")
-
-        # Save the full output to a .txt file for debugging
-        full_output_path = out_dir / f"{p.stem}_simplified_all_output.txt"
-        with open(full_output_path, "w", encoding="utf-8") as f:
-            f.write(full_output)
-        logger.info(f"✅ Full output (explanation + MusicXML) saved to: {full_output_path}")
-
-        # Save the simplified MusicXML to a new file
-        musicxml_output_path = out_dir / f"{p.stem}_simplified.musicxml"
-        with open(musicxml_output_path, "w") as f:
-            f.write(simplified_musicxml)
-        logger.info(f"✅ Simplified MusicXML saved to: {musicxml_output_path}")
         return musicxml_output_path
 
     except Exception as e:
