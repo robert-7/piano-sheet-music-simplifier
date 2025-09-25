@@ -1,36 +1,16 @@
 import json
 import logging
-import os
 import re
-import time
 from datetime import datetime
 from pathlib import Path
 
-import dotenv
 import httpx
-import openai
-from agents import Agent
-from agents import Runner
-from agents import set_default_openai_client
 
 from src.commands import generate_analysis_of_musicxml
 from src.utils import openai_utils
 from src.utils import template_utils
 
 logger = logging.getLogger(__name__)
-
-dotenv.load_dotenv(dotenv_path=dotenv.find_dotenv(usecwd=True), override=False)
-
-def _get_required_env(name: str) -> str:
-        value = os.getenv(name)
-        if not value:
-            raise RuntimeError(
-                f"Missing required environment variable: {name}. "
-                "Create a .env file in your project root with this key, or set it in your shell."
-            )
-        return value
-
-OPENAI_API_KEY = _get_required_env("OPENAI_API_KEY")
 
 def _minify_xml_preserving_text(xml: str) -> str:
     """
@@ -52,6 +32,21 @@ def _write_data_to_file_and_log(data_to_write: str, out_dir: Path, basename_pref
         f.write(data_to_write)
     logger.info(f"✅ {basename_suffix} saved to: {path}")
     return path
+
+def extract_simplified_musicxml(output_text: str) -> str:
+    """
+    Extracts the simplified MusicXML content from the model's output text.
+    """
+    # Extract the first XML code block
+    xml_match = re.search(r"```xml\s*(.*?)\s*```", output_text, flags=re.DOTALL)
+    if not xml_match:
+        # Fallback: try any code fence
+        xml_match = re.search(r"```\s*(.*?)\s*```", output_text, flags=re.DOTALL)
+    if not xml_match:
+        raise RuntimeError("Model response did not contain a MusicXML code block.")
+
+    simplified_musicxml = xml_match.group(1).strip()
+    return simplified_musicxml
 
 def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: bool, run_model_response_in_background: bool) -> Path:
     """
@@ -94,41 +89,25 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
             f"{analysis_compact_json}\n"
             "```\n"
         )
-        logger.debug(query)
-        # TODO: This isn't working due to timeouts.
+        # write the prompts to a file for debugging
+        _write_data_to_file_and_log(musicxml_content, out_dir, p.stem, "original", "musicxml")
+        _write_data_to_file_and_log(analysis_compact_json, out_dir, p.stem, "analysis", "json")
+        _write_data_to_file_and_log(system_prompt, out_dir, p.stem, "simplified_system_prompt", "txt")
+        _write_data_to_file_and_log(user_prompt, out_dir, p.stem, "simplified_user_prompt", "txt")
+
+        # TODO: This isn't 100% working due to timeouts I don't know how to work around.
         if use_agent:
-            client = openai.AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=5)
-            set_default_openai_client(client)
-            code_execution_agent = Agent(
-                name="Expert Piano Arranger & Copyist",
+            output_text, reasoning = openai_utils.run_openai_response_with_agent(
+                timeout=timeout,
                 # TODO: GPT-5 isn't fully working with the agents library yet
                 # model="gpt-5",
                 model="gpt-5-mini",
                 instructions=system_prompt,
-                # TODO: Validate this. This parameter likely doesn't exist.
-                # Set generous output tokens to ensure full MusicXML can be generated
-                model_kwargs={"max_output_tokens": 16384, "response_format": {"type": "text"}},
+                input_text=query,
+                max_retries=2
             )
-            logger.info("Generating simplified MusicXML with OpenAI Agent...")
-            attempts = int(os.getenv("OPENAI_RUN_ATTEMPTS", "2"))
-            last_err = None
-            for attempt in range(1, attempts + 1):
-                try:
-                    result = Runner.run_sync(starting_agent=code_execution_agent, input=query)
-                    break
-                except Exception as e:
-                    last_err = e
-                    if attempt < attempts:
-                        backoff = 2 * attempt
-                        logger.warning(f"Runner.run_sync failed (attempt {attempt}/{attempts}): {e}. Retrying in {backoff}s...")
-                        time.sleep(backoff)
-                    else:
-                        raise
-            result = result.final_output
         elif run_model_response_in_background:
-            # refactored into utility: runs Responses API in background and polls
-            result, reasoning = openai_utils.run_openai_response_in_background(
-                api_key=OPENAI_API_KEY,
+            output_text, reasoning = openai_utils.run_openai_response_in_background(
                 timeout=timeout,
                 model="gpt-5",
                 instructions=system_prompt,
@@ -137,29 +116,12 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                 max_retries=2
             )
 
-        # Parse the response to extract XML and optional filename from the two-section format
-        full_output = (result or "").strip()
-
-        # Try to extract the filename from the "===MUSICXML filename=\"...\"===" line
-        filename_match = re.search(r'===MUSICXML\s+filename="([^"]+)"===', full_output)
-        suggested_filename = filename_match.group(1) if filename_match else None
-
-        # Extract the first XML code block
-        xml_match = re.search(r"```xml\s*(.*?)\s*```", full_output, flags=re.DOTALL)
-        if not xml_match:
-            # Fallback: try any code fence
-            xml_match = re.search(r"```\s*(.*?)\s*```", full_output, flags=re.DOTALL)
-        if not xml_match:
-            raise RuntimeError("Model response did not contain a MusicXML code block.")
-
-        simplified_musicxml = xml_match.group(1).strip()
+        output_text = (output_text or "").strip()
+        simplified_musicxml = extract_simplified_musicxml(output_text)
 
         # Save the all data to files for debugging
-        _write_data_to_file_and_log(analysis_compact_json, out_dir, p.stem, "analysis", "json")
-        _write_data_to_file_and_log(system_prompt, out_dir, p.stem, "simplified_system_prompt", "txt")
-        _write_data_to_file_and_log(user_prompt, out_dir, p.stem, "simplified_user_prompt", "txt")
         _write_data_to_file_and_log(reasoning, out_dir, p.stem, "simplified_reasoning", "txt")
-        _write_data_to_file_and_log(full_output, out_dir, p.stem, "simplified_full_output", "txt")
+        _write_data_to_file_and_log(output_text, out_dir, p.stem, "simplified_full_output", "txt")
         musicxml_output_path = _write_data_to_file_and_log(simplified_musicxml, out_dir, p.stem, "simplified", "musicxml")
 
         return musicxml_output_path
