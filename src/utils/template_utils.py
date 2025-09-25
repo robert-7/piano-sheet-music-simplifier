@@ -2,12 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-from typing import Dict
 
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from jinja2 import StrictUndefined
-
 
 def _env_for(base_dir: Path) -> Environment:
     """

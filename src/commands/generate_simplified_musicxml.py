@@ -10,14 +10,12 @@ import dotenv
 import httpx
 import openai
 from agents import Agent
-from agents import function_tool
 from agents import Runner
 from agents import set_default_openai_client
 
 from src.commands import generate_analysis_of_musicxml
-from src.utils import fs_utils
-from src.utils import score_utils
-from src.utils.template_utils import render_template_file
+from src.utils import openai_utils
+from src.utils import template_utils
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +78,8 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
         system_tpl = resources_dir / "system_instructions_for_chatgpt.j2"
         user_tpl = resources_dir / "user_prompt_for_chatgpt.j2"
         context = {"BASENAME": basename, "TIMESTAMP": timestamp}
-        system_prompt = render_template_file(system_tpl, context)
-        user_prompt = render_template_file(user_tpl, context)
+        system_prompt = template_utils.render_template_file(system_tpl, context)
+        user_prompt = template_utils.render_template_file(user_tpl, context)
 
         # Set up the OpenAI client
         timeout = httpx.Timeout(900.0, read=900.0, write=120.0, connect=60.0)
@@ -128,40 +126,16 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
                         raise
             result = result.final_output
         elif run_model_response_in_background:
-            # TODO: Remove this. This is a workaround only for agents. The defaults work just fine in this scenario.
-            client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=timeout, max_retries=2)
-            set_default_openai_client(client)
-            logger.info("Generating simplified MusicXML with OpenAI Create with background=True...")
-            start = client.responses.create(
+            # refactored into utility: runs Responses API in background and polls
+            result, reasoning = openai_utils.run_openai_response_in_background(
+                api_key=OPENAI_API_KEY,
+                timeout=timeout,
                 model="gpt-5",
                 instructions=system_prompt,
-                input=query,
-                background=True, # run this in the background and poll for results
-                # the standard output response consumes about 55k tokens (for a typical 2-page piece):
-                # * the reasoning is about 12k token (on high effort with detailed summary level)
-                # * the completion is about 43k tokens
-                max_output_tokens=128000,
-                # note: maxing out the reasoning effort to force the model to focus providing the most well-thought-out response
-                # note: maxing out the reasoning summary to get the most detailed explanation of changes
-                reasoning={"effort": "high", "summary": "detailed"},
+                input_text=query,
+                poll_interval_seconds=60,
+                max_retries=2
             )
-            times_slept, minutes_to_sleep_in_seconds = 0, 60
-            while True:
-                r = client.responses.retrieve(start.id)
-                if r.status not in ['completed', 'failed', 'in_progress', 'cancelled', 'queued', 'incomplete']:
-                    raise RuntimeError(f"Unrecognized response status: {r.status}. Full response: {r}")
-                elif r.status in ("failed", "cancelled", "incomplete"):
-                    raise RuntimeError(f"Job {r.status}. Result: {r}")
-                elif r.status == "completed":
-                    logger.info("OpenAI Call status completed. Parsing output_text and reasoning...")
-                    result = r.output_text
-                    reasoning = r.reasoning.summary
-                    break
-                else:
-                    emoji = "⏳" if r.status in ("queued") else "🛠️"
-                    logger.info(f"{emoji} Pending job status: {r.status} (waiting {minutes_to_sleep_in_seconds}s). This can take up to 25 minutes (so far waited {times_slept}m)...")
-                    times_slept += 1
-                    time.sleep(minutes_to_sleep_in_seconds)
 
         # Parse the response to extract XML and optional filename from the two-section format
         full_output = (result or "").strip()
@@ -203,8 +177,8 @@ def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str, out_dir
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     ctx = {"BASENAME": base_file_name, "TIMESTAMP": timestamp}
 
-    system_prompt = render_template_file(base_for_prompts / 'system_instructions_for_chatgpt.j2', ctx)
-    user_prompt = render_template_file(base_for_prompts / 'user_prompt_for_chatgpt.j2', ctx)
+    system_prompt = template_utils.render_template_file(base_for_prompts / 'system_instructions_for_chatgpt.j2', ctx)
+    user_prompt = template_utils.render_template_file(base_for_prompts / 'user_prompt_for_chatgpt.j2', ctx)
 
     # Validate out_dir is provided by the caller and exists
     if not out_dir.exists():
