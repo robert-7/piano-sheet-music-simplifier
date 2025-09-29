@@ -7,7 +7,6 @@ from pathlib import Path
 from src.commands import convert_musicxml_to_pdf
 from src.commands import convert_pdf_to_musicxml
 from src.commands import generate_analysis_of_musicxml
-from src.commands import generate_legacy_analysis_of_musicxml
 from src.commands import generate_simplified_musicxml
 from src.utils import fs_utils
 
@@ -52,7 +51,6 @@ def build_parser() -> argparse.ArgumentParser:
     # --- Sub-parser for generate_analysis_of_musicxml ---
     analyze_parser = subparsers.add_parser("generate_analysis_of_musicxml", help="Perform harmony analysis on a MusicXML file.")
     analyze_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
-    analyze_parser.add_argument("--legacy", action="store_true", help="Use the legacy analysis method")
 
     # --- Sub-parser for generate_simplified_musicxml ---
     simplify_parser = subparsers.add_parser("generate_simplified_musicxml", help="Generate a simplified version of the piece in a given MusicXML file (as a MusicXML file).")
@@ -118,11 +116,7 @@ def main():
         convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, args.out_dir, not args.no_rasterize, args.dpi)
 
     elif args.command == "generate_analysis_of_musicxml":
-        # TODO: Remove legacy option after verifying new analysis improvements
-        if args.legacy:
-            generate_legacy_analysis_of_musicxml.generate_legacy_analysis_of_musicxml(args.musicxml_path)
-        else:
-            generate_analysis_of_musicxml.generate_analysis_of_musicxml(args.musicxml_path, out_dir=args.out_dir)
+        generate_analysis_of_musicxml.generate_analysis_of_musicxml(args.musicxml_path, out_dir=args.out_dir)
 
     elif args.command == "generate_simplified_musicxml":
         if args.manual:
