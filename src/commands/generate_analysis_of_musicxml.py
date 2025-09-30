@@ -847,7 +847,6 @@ def generate_analysis_of_musicxml(musicxml_path: str,
                                   out_dir: str = ".") -> None:
     """
     Programmatic entry point: build and return the analysis bundle for a MusicXML file.
-    Mirrors the legacy generate_legacy_analysis_of_musicxml() shape.
     """
     bundle = build_analysis_bundle(musicxml_path)
 
