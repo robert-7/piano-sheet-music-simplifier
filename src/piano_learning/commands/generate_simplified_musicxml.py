@@ -7,8 +7,8 @@ from pathlib import Path
 import httpx
 
 from src.piano_learning.commands import generate_analysis_of_musicxml
-from src.utils import openai_utils
-from src.utils import template_utils
+from src.piano_learning.utils import openai_utils
+from src.piano_learning.utils import template_utils
 
 logger = logging.getLogger(__name__)
 

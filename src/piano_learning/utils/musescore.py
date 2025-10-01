@@ -4,8 +4,8 @@ from pathlib import Path
 
 from music21 import environment
 
-from src.utils import build_utils
-from src.utils import score_utils
+from src.piano_learning.utils import build_utils
+from src.piano_learning.utils import score_utils
 
 logger = logging.getLogger(__name__)
 

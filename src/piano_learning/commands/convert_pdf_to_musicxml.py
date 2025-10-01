@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from src.utils import audiveris
+from src.piano_learning.utils import audiveris
 
 logger = logging.getLogger(__name__)
 

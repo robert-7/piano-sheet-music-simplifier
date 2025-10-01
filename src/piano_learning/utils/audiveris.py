@@ -7,8 +7,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.utils import fs_utils
-from src.utils import image_utils
+from src.piano_learning.utils import fs_utils
+from src.piano_learning.utils import image_utils
 
 logger = logging.getLogger(__name__)
 

@@ -2,8 +2,8 @@ import logging
 from pathlib import Path
 from typing import Dict
 
-from src.utils import lilypond
-from src.utils import musescore
+from src.piano_learning.utils import lilypond
+from src.piano_learning.utils import musescore
 
 logger = logging.getLogger(__name__)
 
