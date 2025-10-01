@@ -6,7 +6,7 @@ from pathlib import Path
 
 import httpx
 
-from src.commands import generate_analysis_of_musicxml
+from src.piano_learning.commands import generate_analysis_of_musicxml
 from src.utils import openai_utils
 from src.utils import template_utils
 

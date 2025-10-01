@@ -4,10 +4,10 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from src.commands import convert_musicxml_to_pdf
-from src.commands import convert_pdf_to_musicxml
-from src.commands import generate_analysis_of_musicxml
-from src.commands import generate_simplified_musicxml
+from src.piano_learning.commands import convert_musicxml_to_pdf
+from src.piano_learning.commands import convert_pdf_to_musicxml
+from src.piano_learning.commands import generate_analysis_of_musicxml
+from src.piano_learning.commands import generate_simplified_musicxml
 from src.utils import fs_utils
 
 logger = logging.getLogger(__name__)
