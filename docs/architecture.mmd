@@ -1,0 +1,40 @@
+flowchart LR
+    %% Inputs
+    A1[PDF in user/input/*.pdf]
+    A2[MusicXML in user/input/*.musicxml]
+
+    %% Conversion: PDF -> MusicXML (Audiveris)
+    A1 -- convert_pdf_to_musicxml --> B[MusicXML]
+
+    %% Direct MusicXML path
+    A2 --> B
+
+    %% Analyze MusicXML
+    B -- generate_analysis_of_musicxml --> C[Analysis JSON]
+
+    %% Simplify MusicXML
+    B -- generate_simplified_musicxml (auto) --> D[Simplified MusicXML]
+    C -. manual prompts .- D
+
+    %% Render to PDF
+    D -- convert_musicxml_to_pdf --> E[Simplified PDF]
+
+    %% Outputs
+    subgraph "Outputs (timestamped)"
+        E --> O1[user/output/TIMESTAMP/]
+        C --> O1
+        D --> O1
+    end
+
+    %% External tools (behind the commands)
+    classDef ext fill:#f7f7f7,stroke:#bbb,color:#333;
+    subgraph External Tools
+        X[Audiveris]:::ext
+        Y[LilyPond]:::ext
+        Z["MuseScore (optional)"]:::ext
+    end
+
+    %% Show tool involvement (informational)
+    A1 -. uses .-> X
+    D  -. uses .-> Y
+    D  -. optional .-> Z
