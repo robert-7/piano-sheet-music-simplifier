@@ -13,7 +13,7 @@ flowchart LR
     B -- generate_analysis_of_musicxml --> C[Analysis JSON]
 
     %% Simplify MusicXML
-    B -- generate_simplified_musicxml (auto) --> D[Simplified MusicXML]
+    B -- generate_simplified_musicxml --> D[Simplified MusicXML]
     C -. manual prompts .- D
 
     %% Render to PDF
@@ -29,12 +29,14 @@ flowchart LR
     %% External tools (behind the commands)
     classDef ext fill:#f7f7f7,stroke:#bbb,color:#333;
     subgraph External Tools
-        X[Audiveris]:::ext
-        Y[LilyPond]:::ext
-        Z["MuseScore (optional)"]:::ext
+        W[Audiveris]:::ext
+        X[OpenAI]:::ext
+        Y["LilyPond (optional)"]:::ext
+        Z[MuseScore]:::ext
     end
 
     %% Show tool involvement (informational)
-    A1 -. uses .-> X
-    D  -. uses .-> Y
-    D  -. optional .-> Z
+    A1 -. uses .-> W
+    B  -. uses .-> X
+    D  -. optional .-> Y
+    D  -. uses .-> Z
