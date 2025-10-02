@@ -55,7 +55,7 @@ flowchart LR
 
 Optional: validate or render this diagram locally
 
-* Validate syntax in pre-commit: the repo includes a hook that checks the Mermaid block.
+* Validate syntax in pre-commit: the repo includes a hook that checks the Mermaid block using [scripts/diagram.sh](scripts/diagram.sh).
 * Render an SVG for docs/slides
 
 Try it:
