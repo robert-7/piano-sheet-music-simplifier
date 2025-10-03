@@ -1,5 +1,7 @@
+---
 name: pre-commit
 
+# yamllint disable-line rule:truthy
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -25,7 +27,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # full history so diff refs are available
+          fetch-depth: 0  # full history so diff refs are available
 
       - name: Set up Python
         uses: actions/setup-python@v5

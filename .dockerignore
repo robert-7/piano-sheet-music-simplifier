@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+env/
+
+# Git
+.git/
+.gitignore
+
+# Editor/OS
+.DS_Store
+.vscode/
+
+# Project outputs
+user/output/
+*.log
+
+# Large or transient files
+*.pdf
+*.musicxml
+*.mxl
+*.png
+*.jpg
+*.jpeg
+*.svg
+
+# Build artifacts
+dist/
+build/
