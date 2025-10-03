@@ -11,6 +11,7 @@ repos:
       - id: fix-byte-order-marker
       - id: trailing-whitespace
       - id: end-of-file-fixer
+        exclude: '^docs/.*\.svg$'
       - id: mixed-line-ending
         args: ['--fix=lf']
         description: Forces to replace line ending by the UNIX 'lf' character.
@@ -52,3 +53,12 @@ repos:
     hooks:
       - id: yamllint
         entry: yamllint -c .yamllint.yaml .
+
+  # local hook: validate the README Mermaid diagram
+  - repo: local
+    hooks:
+      - id: diagram-validate
+        name: Validate Mermaid diagram in README
+        entry: bash scripts/diagram.sh --check
+        language: system
+        files: README.md
