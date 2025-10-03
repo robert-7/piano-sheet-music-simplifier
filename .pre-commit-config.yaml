@@ -52,7 +52,7 @@ repos:
     rev: v1.37.1
     hooks:
       - id: yamllint
-        entry: yamllint -c .yamllint.yaml .
+        entry: yamllint -c .yamllint.yaml --strict .
 
   # local hook: validate the README Mermaid diagram
   - repo: local
