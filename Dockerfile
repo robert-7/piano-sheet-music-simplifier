@@ -11,6 +11,7 @@ ARG AUDIVERIS_VERSION=5.7.1
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     VIRTUAL_ENV=/opt/venv \
+    QT_QPA_PLATFORM=offscreen \
     PATH="/opt/venv/bin:/usr/local/bin:${PATH}"
 
 WORKDIR /app
@@ -25,6 +26,7 @@ RUN set -eux; \
         git \
         openjdk-17-jre-headless \
         lilypond \
+        musescore \
         poppler-utils \
         fonts-dejavu-core; \
     rm -rf /var/lib/apt/lists/*

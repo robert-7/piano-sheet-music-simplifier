@@ -42,15 +42,15 @@ flowchart LR
     subgraph External Tools
         W[Audiveris]:::ext
         X[OpenAI]:::ext
-        Y["LilyPond (optional)"]:::ext
-        Z[MuseScore]:::ext
+        Y["MuseScore (preferred)"]:::ext
+        Z["LilyPond (optional)"]:::ext
     end
 
     %% Show tool involvement (informational)
     A1 -. uses .-> W
     B  -. uses .-> X
-    D  -. optional .-> Y
-    D  -. uses .-> Z
+    D  -. uses .-> Y
+    D  -. optional .-> Z
 ```
 
 Optional: validate or render this diagram locally
@@ -101,6 +101,22 @@ If you require List commands and help:
 ## Validating the External Dependencies
 
 This repo makes use of various external tools.
+
+### MuseScore vs. LilyPond
+
+MuseScore is the preferred renderer for PDF output in this project due to better engraving for many scores. The Docker image installs MuseScore and configures a headless Qt environment, so `convert_musicxml_to_pdf` will work with MuseScore out-of-the-box. LilyPond remains available as an optional alternative.
+
+Inside Docker, you can run the end-to-end flow and rely on MuseScore for final PDF generation:
+
+```shell
+docker compose run --rm piano-learning python3 main.py generate_simplified_pdf --musicxml_path user/input/Your_Score.musicxml
+```
+
+Or run just the MusicXML → PDF step with MuseScore:
+
+```shell
+docker compose run --rm piano-learning python3 main.py convert_musicxml_to_pdf user/input/Your_Score.musicxml --convert-with-musescore --overwrite
+```
 
 ### Debugging Issues with OpenAI
 

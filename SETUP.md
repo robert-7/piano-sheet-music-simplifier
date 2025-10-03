@@ -53,15 +53,24 @@ sudo apt install "${_download_dir}/${_file}"
 sudo ln -s /opt/audiveris/bin/Audiveris /usr/local/bin/audiveris
 ```
 
-Install Lilypond and Musescore to generate PDF sheet music based on .musicxml files.
+Install Lilypond and MuseScore to generate PDF sheet music based on .musicxml files.
 
 ```shell
 sudo apt install -y lilypond
 which lilypond
 lilypond --version
 
-sudo snap install musescore
-snap list musescore
+sudo apt install -y musescore
+which musescore
+musescore --version
+```
+
+Note: If you're using Docker, the provided image already includes MuseScore and LilyPond. You can skip local installation and run:
+
+```shell
+docker compose build
+docker compose up -d
+docker compose run --rm piano-learning python3 main.py convert_musicxml_to_pdf user/input/Your_Score.musicxml --convert-with-musescore --overwrite
 ```
 
 We need to set up our `.env` file with the required API keys.

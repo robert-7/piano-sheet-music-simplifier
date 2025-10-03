@@ -15,6 +15,7 @@ services:
       # Load from host .env if present
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - PYTHONUNBUFFERED=1
+      - QT_QPA_PLATFORM=offscreen
     volumes:
       # Mount only the user workspace for inputs/outputs; code is baked in the image
       - ./user:/app/user
@@ -28,7 +29,7 @@ services:
         "bash",
         "-lc",
         # yamllint disable-line rule:line-length
-        "audiveris -version >/dev/null 2>&1 && lilypond --version >/dev/null 2>&1 && python3 -c 'import music21; print(music21.__version__)' >/dev/null 2>&1"
+        "audiveris -version >/dev/null 2>&1 && lilypond --version >/dev/null 2>&1 && musescore --version >/dev/null 2>&1 && python3 -c 'import music21; print(music21.__version__)' >/dev/null 2>&1"
       ]
       interval: 30s
       timeout: 10s
