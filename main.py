@@ -7,7 +7,8 @@ from pathlib import Path
 from src.piano_learning.commands import convert_musicxml_to_pdf
 from src.piano_learning.commands import convert_pdf_to_musicxml
 from src.piano_learning.commands import generate_analysis_of_musicxml
-from src.piano_learning.commands import generate_simplified_musicxml
+from src.piano_learning.commands import generate_simplified_musicxml_using_ai
+from src.piano_learning.commands import generate_simplified_musicxml_using_music21
 from src.piano_learning.utils import fs_utils
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     simplify_parser = subparsers.add_parser("generate_simplified_musicxml", help="Generate a simplified version of the piece in a given MusicXML file (as a MusicXML file).")
     simplify_parser.add_argument("musicxml_path", help="Path to the original MusicXML or MXL file")
     simplify_parser.add_argument("--manual", action="store_true", help="Generate manual prompt files for review, but do not call the AI API")
+    simplify_parser.add_argument("--music21", action="store_true", default=True, help="Use music21 for analysis and simplification instead of AI")
     # TODO: Change default to True after issuue with GPT-5 and agents is resolved
     simplify_parser.add_argument("--use-agent", action="store_true", default=False, help="Use the OpenAI API with an agent")
     simplify_parser.add_argument("--run-model-response-in-background", default=True, action="store_true", help="Run the model response in the background")
@@ -93,14 +95,17 @@ def main():
                 logger.error("Either --pdf_path or --musicxml_path must be provided.")
                 exit(1)
             if args.pdf_path:
+                logger.info("Using PDF for MusicXML conversion...")
                 musicxml_path = convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, out_dir, True, False)
                 if not musicxml_path:
                     logger.error(f"Error converting PDF {args.pdf_path} to MusicXML. Logs can be found in {out_dir}.")
                     exit(1)
             else:
+                logger.info("Skipping PDF to MusicXML conversion...")
                 musicxml_path = args.musicxml_path
-            simplified_musicxml_path = generate_simplified_musicxml.generate_simplified_musicxml(
-                musicxml_path, out_dir=out_dir, use_agent=False, run_model_response_in_background=True)
+            # Simplify MusicXML using music21 for now
+            logger.info("Generating simplified MusicXML using music21...")
+            simplified_musicxml_path = generate_simplified_musicxml_using_music21.generate_simplified_musicxml_using_music21(musicxml_path, out_dir=out_dir)
             if not simplified_musicxml_path:
                 logger.error(f"Error generating simplified MusicXML from {musicxml_path}. Logs can be found in {out_dir}.")
                 exit(1)
@@ -120,9 +125,14 @@ def main():
 
     elif args.command == "generate_simplified_musicxml":
         if args.manual:
-            generate_simplified_musicxml.generate_chatgpt_prompts_for_simplified_musicxml(args.musicxml_path, args.out_dir)
+            generate_simplified_musicxml_using_ai.generate_chatgpt_prompts_for_simplified_musicxml(args.musicxml_path, args.out_dir)
         else:
-            generate_simplified_musicxml.generate_simplified_musicxml(args.musicxml_path, args.out_dir, args.use_agent, args.run_model_response_in_background)
+            if args.music21:
+                logger.info("Using music21 for simplification...")
+                generate_simplified_musicxml_using_music21.generate_simplified_musicxml_using_music21(args.musicxml_path, args.out_dir)
+            else:
+                logger.info("Using OpenAI for simplification...")
+                generate_simplified_musicxml_using_ai.generate_simplified_musicxml(args.musicxml_path, args.out_dir, args.use_agent, args.run_model_response_in_background)
 
     elif args.command == "convert_musicxml_to_pdf":
         convert_musicxml_to_pdf.convert_musicxml_to_pdf(
