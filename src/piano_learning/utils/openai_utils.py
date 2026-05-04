@@ -25,6 +25,8 @@ def _get_required_env(name: str) -> str:
         return value
 
 OPENAI_API_KEY = _get_required_env("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.5")
+OPENAI_AGENT_MODEL = os.getenv("OPENAI_AGENT_MODEL", "gpt-5.5")
 
 def run_openai_response_in_background(
     api_key: str,

@@ -100,8 +100,7 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
             output_text, reasoning = openai_utils.run_openai_response_with_agent(
                 timeout=timeout,
                 # TODO: GPT-5 isn't fully working with the agents library yet
-                # model="gpt-5",
-                model="gpt-5-mini",
+                model=openai_utils.OPENAI_AGENT_MODEL,
                 instructions=system_prompt,
                 input_text=query,
                 max_retries=2
@@ -109,7 +108,7 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
         elif run_model_response_in_background:
             output_text, reasoning = openai_utils.run_openai_response_in_background(
                 timeout=timeout,
-                model="gpt-5",
+                model=openai_utils.OPENAI_MODEL,
                 instructions=system_prompt,
                 input_text=query,
                 poll_interval_seconds=60,
