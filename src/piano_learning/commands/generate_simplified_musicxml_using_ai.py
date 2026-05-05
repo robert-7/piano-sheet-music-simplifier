@@ -22,14 +22,14 @@ def _minify_xml_preserving_text(xml: str) -> str:
     xml = re.sub(r'>\s+<', '><', xml)
     return xml.strip()
 
-def _write_data_to_file_and_log(data_to_write: str, out_dir: Path, basename_prefix: str, basename_suffix: str, extension: str) -> Path:
+def _write_data_to_file_and_log(data_to_write: object, out_dir: Path, basename_prefix: str, basename_suffix: str, extension: str) -> Path:
     """
     Writes data to a file in out_dir with a name based on prefix and suffix.
     """
     # Save the data to a file for debugging
     path = out_dir / f"{basename_prefix}_{basename_suffix}.{extension}"
     with open(path, "w", encoding="utf-8") as f:
-        f.write(data_to_write)
+        f.write(openai_utils._coerce_to_text(data_to_write))
     logger.info(f"✅ {basename_suffix} saved to: {path}")
     return path
 
@@ -48,7 +48,11 @@ def extract_simplified_musicxml(output_text: str) -> str:
     simplified_musicxml = xml_match.group(1).strip()
     return simplified_musicxml
 
-def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: bool, run_model_response_in_background: bool) -> Path:
+def generate_simplified_musicxml(
+    musicxml_path: str,
+    out_dir: Path,
+    use_agent: bool = False,
+) -> Path | None:
     """
     Generates a simplified version of a MusicXML file using an AI agent.
     """
@@ -95,25 +99,22 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
         _write_data_to_file_and_log(system_prompt, out_dir, p.stem, "simplified_system_prompt", "txt")
         _write_data_to_file_and_log(user_prompt, out_dir, p.stem, "simplified_user_prompt", "txt")
 
-        # TODO: This isn't 100% working due to timeouts I don't know how to work around.
         if use_agent:
             output_text, reasoning = openai_utils.run_openai_response_with_agent(
                 timeout=timeout,
-                # TODO: GPT-5 isn't fully working with the agents library yet
-                # model="gpt-5",
-                model="gpt-5-mini",
+                model=openai_utils.OPENAI_AGENT_MODEL,
                 instructions=system_prompt,
                 input_text=query,
-                max_retries=2
+                max_retries=2,
             )
-        elif run_model_response_in_background:
+        else:
             output_text, reasoning = openai_utils.run_openai_response_in_background(
                 timeout=timeout,
-                model="gpt-5",
+                model=openai_utils.OPENAI_MODEL,
                 instructions=system_prompt,
                 input_text=query,
                 poll_interval_seconds=60,
-                max_retries=2
+                max_retries=2,
             )
 
         output_text = (output_text or "").strip()
@@ -128,6 +129,7 @@ def generate_simplified_musicxml(musicxml_path: str, out_dir: Path, use_agent: b
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
+        return None
 
 def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str, out_dir: Path) -> None:
     """

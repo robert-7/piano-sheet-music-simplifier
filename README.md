@@ -72,8 +72,10 @@ Given a sheet located at `user/input/Difficult_Sheet_Music.pdf`.
 
 Run the entire pipeline in one step:
 
-* From PDF: `./main.py generate_simplified_pdf --pdf_path user/input/your_file.pdf`
-* From MusicXML: `./main.py generate_simplified_pdf --musicxml_path user/input/your_file.musicxml`
+* From PDF using the default `music21` simplifier: `./main.py generate_simplified_pdf --pdf_path user/input/your_file.pdf`
+* From MusicXML using the default `music21` simplifier: `./main.py generate_simplified_pdf --musicxml_path user/input/your_file.musicxml`
+* From MusicXML using OpenAI via the Responses API background mode: `./main.py generate_simplified_pdf --musicxml_path user/input/your_file.musicxml --simplifier openai`
+* From MusicXML using OpenAI via the experimental Agents SDK: `./main.py generate_simplified_pdf --musicxml_path user/input/your_file.musicxml --simplifier openai --use-agent`
 
 Note: Outputs are written to a timestamped directory under `user/output/` unless you pass `--out-dir`.
 
@@ -84,9 +86,11 @@ Note: Outputs are written to a timestamped directory under `user/output/` unless
 1. Analyze a MusicXML file:
     * `python main.py generate_analysis_of_musicxml user/input/Difficult_Sheet_Music.xml`
 1. Generate the simplified MusicXML file (automatic or manual for validation):
-    * Automatic (recommended): `python main.py generate_simplified_musicxml user/input/Difficult_Sheet_Music.xml`
+    * Automatic with `music21` (default): `python main.py generate_simplified_musicxml user/input/Difficult_Sheet_Music.xml`
+    * Automatic with OpenAI Responses API background mode: `python main.py generate_simplified_musicxml user/input/Difficult_Sheet_Music.xml --simplifier openai`
+    * Automatic with OpenAI Agents SDK (experimental): `python main.py generate_simplified_musicxml user/input/Difficult_Sheet_Music.xml --simplifier openai --use-agent`
     * Manual (validation):
-        1. `python main.py generate_simplified_musicxml --manual user/input/Difficult_Sheet_Music.xml`
+        1. `python main.py generate_simplified_musicxml --simplifier openai --manual user/input/Difficult_Sheet_Music.xml`
         1. This renders the [system prompt](src/piano_learning/resources/system_instructions_for_chatgpt.j2) and the [user prompt](src/piano_learning/resources/user_prompt_for_chatgpt.j2).
         1. Attach `user/input/Difficult_Sheet_Music.xml` and `user/input/Difficult_Sheet_Music_analysis.json` in ChatGPT.
         1. Save the generated simplified file as `user/input/Difficult_Sheet_Music_simplified.xml` (re-run if needed).
@@ -97,6 +101,32 @@ If you require List commands and help:
 
 * `python main.py -h`
 * `python main.py <sub-command> -h`
+
+## Simplifier Backends
+
+The repo currently supports two simplification backends:
+
+* `music21` (default): deterministic local simplification that does not require `OPENAI_API_KEY`
+* `openai`: AI-backed simplification that requires `OPENAI_API_KEY`
+
+Key rules:
+
+* `--simplifier music21` is the default for both `generate_simplified_musicxml` and `generate_simplified_pdf`.
+* `--simplifier openai` uses the OpenAI Responses API in background mode by default.
+* `--use-agent` only applies when `--simplifier openai` is selected.
+* `--manual` only applies when `--simplifier openai` is selected.
+* The old `--music21` flag is still accepted as a backward-compatible alias, but new work should prefer `--simplifier music21`.
+
+If you're debugging backend selection in isolation, start here:
+
+```shell
+python main.py generate_simplified_musicxml -h
+python main.py generate_simplified_musicxml user/input/Your_Score.musicxml
+python main.py generate_simplified_musicxml user/input/Your_Score.musicxml --simplifier openai
+python main.py generate_simplified_musicxml user/input/Your_Score.musicxml --simplifier openai --manual
+```
+
+The selected backend is logged to `user/output/.../piano_learning.log`, which is the quickest way to confirm whether you are exercising `music21`, OpenAI background mode, or the experimental agent path.
 
 ## Validating the External Dependencies
 
@@ -124,5 +154,11 @@ For additional details for validating issues:
 
 * [OpenAI's Observability](https://platform.openai.com/logs)
 
-Moreover, for validating the agent, use the `--manual` argument to output the prompts to paste into ChatGPT.
-Run `python main.py generate_simplified_musicxml --manual user/input/Difficult_Sheet_Music.xml` to generate the prompt.
+OpenAI-specific notes:
+
+* You only need `OPENAI_API_KEY` for commands that use `--simplifier openai`.
+* The default OpenAI execution path is the Responses API in background mode.
+* `--use-agent` is supported as an experimental path for isolated validation only.
+* `--manual` renders the prompts without calling the API, which is useful when you want to inspect the exact prompt payload independently of local code.
+
+Run `python main.py generate_simplified_musicxml --simplifier openai --manual user/input/Difficult_Sheet_Music.xml` to generate the prompt files.

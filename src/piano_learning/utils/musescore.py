@@ -20,13 +20,13 @@ def _detect_musescore() -> str | None:
     # Prefer your Flatpak wrapper if you created it:
     wrapper = Path("/usr/local/bin/musescore")
     if wrapper.exists():
-        logger.info(f"Found musescore at: {wrapper}")
+        logger.debug(f"Found musescore at: {wrapper} (using wrapper)")
         return str(wrapper)
     # Otherwise, try native binaries
     for name in ("musescore", "mscore", "musescore3"):
         p = shutil.which(name)
         if p:
-            logger.info(f"Found musescore at: {p}")
+            logger.debug(f"Found musescore at: {p} (using native binary)")
             return p
     logger.warning("Could not find musescore executable.")
     return None
