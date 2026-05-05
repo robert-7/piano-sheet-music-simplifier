@@ -73,11 +73,29 @@ docker compose up -d
 docker compose run --rm piano-learning python3 main.py convert_musicxml_to_pdf user/input/Your_Score.musicxml --convert-with-musescore --overwrite
 ```
 
-We need to set up our `.env` file with the required API keys.
+OpenAI credentials are only required for commands that use `--simplifier openai`.
+If you are only using the default `music21` simplifier, converting PDFs, analyzing scores, or rendering PDFs, you can skip this step.
 
 ```shell
-cp .env.template .env
-sed -i 's/OPENAI_API_KEY=.*/OPENAI_API_KEY=INSERT_KEY_HERE/g' .env
+cat > .env <<'EOF'
+OPENAI_API_KEY=INSERT_KEY_HERE
+# Optional model overrides:
+# OPENAI_MODEL=gpt-5.5
+# OPENAI_AGENT_MODEL=gpt-5.5
+EOF
+```
+
+Useful isolated checks after setup:
+
+```shell
+# does not require OPENAI_API_KEY
+python main.py generate_simplified_musicxml user/input/Your_Score.musicxml
+
+# requires OPENAI_API_KEY
+python main.py generate_simplified_musicxml user/input/Your_Score.musicxml --simplifier openai
+
+# prompt generation only; requires --simplifier openai but does not call the API
+python main.py generate_simplified_musicxml user/input/Your_Score.musicxml --simplifier openai --manual
 ```
 
 ## Recurring
