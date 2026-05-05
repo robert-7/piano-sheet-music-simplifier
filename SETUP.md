@@ -82,8 +82,13 @@ OPENAI_API_KEY=INSERT_KEY_HERE
 # Optional model overrides:
 # OPENAI_MODEL=gpt-5.5
 # OPENAI_AGENT_MODEL=gpt-5.5
+# Optional logging override:
+# LOG_LEVEL=DEBUG
 EOF
 ```
+
+Supported `LOG_LEVEL` values are `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL`.
+If `LOG_LEVEL=DEBUG`, the app will emit debug logs such as the resolved execution context for `generate_simplified_pdf`.
 
 Useful isolated checks after setup:
 

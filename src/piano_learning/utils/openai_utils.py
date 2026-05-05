@@ -4,7 +4,6 @@ import time
 from typing import Any
 from typing import Tuple
 
-import dotenv
 import httpx
 import openai
 from agents import Agent
@@ -13,7 +12,13 @@ from agents import set_default_openai_client
 
 logger = logging.getLogger(__name__)
 
-dotenv.load_dotenv(dotenv_path=dotenv.find_dotenv(usecwd=True), override=False)
+try:
+    import dotenv
+except ImportError:  # pragma: no cover - exercised indirectly in lightweight environments
+    dotenv = None
+
+if dotenv is not None:
+    dotenv.load_dotenv(dotenv_path=dotenv.find_dotenv(usecwd=True), override=False)
 
 
 def _get_required_env(name: str) -> str:

@@ -12,6 +12,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class MainCliTests(unittest.TestCase):
+    def test_resolve_log_level_defaults_to_info(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(main.resolve_log_level(), main.logging.INFO)
+
+    def test_resolve_log_level_reads_env(self):
+        with mock.patch.dict(os.environ, {"LOG_LEVEL": "debug"}, clear=True):
+            self.assertEqual(main.resolve_log_level(), main.logging.DEBUG)
+
+    def test_resolve_log_level_rejects_invalid_values(self):
+        with mock.patch.dict(os.environ, {"LOG_LEVEL": "chatty"}, clear=True):
+            with self.assertRaisesRegex(ValueError, "Invalid LOG_LEVEL"):
+                main.resolve_log_level()
+
     def test_import_main_without_openai_api_key(self):
         env = dict(os.environ)
         env.pop("OPENAI_API_KEY", None)

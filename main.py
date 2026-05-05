@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from src.piano_learning.utils import fs_utils
 
+try:
+    import dotenv
+except ImportError:  # pragma: no cover - exercised indirectly in lightweight environments
+    dotenv = None
+
 logger = logging.getLogger(__name__)
 
 SIMPLIFIER_MUSIC21 = "music21"
 SIMPLIFIER_OPENAI = "openai"
+DEFAULT_LOG_LEVEL = "INFO"
+
+if dotenv is not None:
+    dotenv.load_dotenv(dotenv_path=dotenv.find_dotenv(usecwd=True), override=False)
 
 
 def add_simplifier_args(parser: argparse.ArgumentParser, *, include_manual: bool) -> None:
@@ -67,6 +77,49 @@ def validate_simplifier_args(args: argparse.Namespace) -> None:
         raise ValueError("--manual requires --simplifier openai.")
     if getattr(args, "use_agent", False) and simplifier != SIMPLIFIER_OPENAI:
         raise ValueError("--use-agent requires --simplifier openai.")
+
+
+def resolve_log_level() -> int:
+    """
+    Resolves the configured log level from LOG_LEVEL in the environment or .env.
+    """
+    raw_value = os.getenv("LOG_LEVEL", DEFAULT_LOG_LEVEL).strip().upper()
+    level = logging.getLevelName(raw_value)
+    if not isinstance(level, int):
+        raise ValueError(
+            f"Invalid LOG_LEVEL={raw_value!r}. Expected one of DEBUG, INFO, WARNING, ERROR, or CRITICAL."
+        )
+    return level
+
+
+def log_generate_simplified_pdf_context(args: argparse.Namespace) -> None:
+    """
+    Logs the raw and resolved arguments used by generate_simplified_pdf.
+    """
+    simplifier = resolve_simplifier(args)
+    input_source = "pdf" if args.pdf_path else "musicxml"
+    openai_execution_mode = "disabled"
+    if simplifier == SIMPLIFIER_OPENAI:
+        openai_execution_mode = "agent" if args.use_agent else "responses_background"
+
+    logger.debug(
+        "generate_simplified_pdf raw args: pdf_path=%s, musicxml_path=%s, simplifier=%s, "
+        "use_agent=%s, legacy_music21=%s, legacy_background_mode=%s, out_dir=%s",
+        args.pdf_path,
+        args.musicxml_path,
+        getattr(args, "simplifier", None),
+        args.use_agent,
+        getattr(args, "legacy_music21", False),
+        getattr(args, "legacy_background_mode", False),
+        args.out_dir,
+    )
+    logger.debug(
+        "generate_simplified_pdf resolved context: input_source=%s, resolved_simplifier=%s, "
+        "openai_execution_mode=%s",
+        input_source,
+        simplifier,
+        openai_execution_mode,
+    )
 
 
 def run_simplification_backend(
@@ -184,20 +237,27 @@ def main():
     except ValueError as exc:
         parser.error(str(exc))
 
+    try:
+        log_level = resolve_log_level()
+    except ValueError as exc:
+        parser.error(str(exc))
+
     # Ensure log directory exists, then configure logging to both console and file
     fs_utils.ensure_dir(Path(args.out_dir))
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(),
             logging.FileHandler(args.out_dir / "piano_learning.log", encoding="utf-8"),
         ],
     )
+    logger.info("Logging initialized at level: %s", logging.getLevelName(log_level))
 
     if args.command == "generate_simplified_pdf":
         out_dir = args.out_dir
         try:
+            log_generate_simplified_pdf_context(args)
             if not args.pdf_path and not args.musicxml_path:
                 logger.error("Either --pdf_path or --musicxml_path must be provided.")
                 exit(1)
