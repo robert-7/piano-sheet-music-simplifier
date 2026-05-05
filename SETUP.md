@@ -101,6 +101,9 @@ python main.py generate_simplified_musicxml user/input/Your_Score.musicxml --sim
 
 # prompt generation only; requires --simplifier openai but does not call the API
 python main.py generate_simplified_musicxml user/input/Your_Score.musicxml --simplifier openai --manual
+
+# apply a saved simplification-plan JSON without calling OpenAI
+python main.py apply_simplification_plan user/input/Your_Score.musicxml user/input/Your_Score_plan.json
 ```
 
 ## Recurring
