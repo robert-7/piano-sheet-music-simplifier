@@ -81,6 +81,9 @@ def run_openai_response_in_background(
     poll_interval_seconds: int = 60,
     max_retries: int = 2,
     api_key: str | None = None,
+    max_output_tokens: int = 128000,
+    reasoning_effort: str = "high",
+    reasoning_summary: str = "detailed",
 ) -> Tuple[str, str]:
     """
     Create an OpenAI Responses job with background=True and poll until completion.
@@ -99,10 +102,8 @@ def run_openai_response_in_background(
         instructions=instructions,
         input=input_text,
         background=True,
-        # The current one-shot path can produce a large response; keep the cap generous until
-        # the prompt/output contract is tightened in later issues.
-        max_output_tokens=128000,
-        reasoning={"effort": "high", "summary": "detailed"},
+        max_output_tokens=max_output_tokens,
+        reasoning={"effort": reasoning_effort, "summary": reasoning_summary},
     )
 
     times_slept = 0

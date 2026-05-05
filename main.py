@@ -208,6 +208,14 @@ def build_parser() -> argparse.ArgumentParser:
     simplify_parser.add_argument("musicxml_path", help="Path to the original MusicXML or MXL file")
     add_simplifier_args(simplify_parser, include_manual=True)
 
+    # --- Sub-parser for apply_simplification_plan ---
+    apply_plan_parser = subparsers.add_parser(
+        "apply_simplification_plan",
+        help="Apply a structured LH simplification-plan JSON file to a MusicXML score.",
+    )
+    apply_plan_parser.add_argument("musicxml_path", help="Path to the original MusicXML or MXL file")
+    apply_plan_parser.add_argument("plan_path", help="Path to the simplification-plan JSON file")
+
     # --- Sub-parser for convert_musicxml_to_pdf ---
     convert_parser = subparsers.add_parser("convert_musicxml_to_pdf", help="Convert a MusicXML file to PDF.")
     convert_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
@@ -324,6 +332,28 @@ def main():
                 simplifier=simplifier,
                 use_agent=args.use_agent,
             )
+
+    elif args.command == "apply_simplification_plan":
+        import json
+
+        from src.piano_learning.utils import musicxml_rewriter
+        from src.piano_learning.utils import simplification_plan
+
+        musicxml_path = Path(args.musicxml_path)
+        plan_path = Path(args.plan_path)
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        source_measure_numbers = musicxml_rewriter.get_measure_numbers(musicxml_path)
+        validated_plan = simplification_plan.validate_plan(
+            plan,
+            source_measure_numbers=source_measure_numbers,
+            require_all_measures=True,
+        )
+        output_path = Path(args.out_dir) / f"{musicxml_path.stem}_simplified.musicxml"
+        musicxml_rewriter.write_simplified_musicxml_from_plan(
+            musicxml_path,
+            validated_plan,
+            output_path,
+        )
 
     elif args.command == "convert_musicxml_to_pdf":
         from src.piano_learning.commands import convert_musicxml_to_pdf

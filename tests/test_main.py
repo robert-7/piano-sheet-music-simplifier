@@ -108,6 +108,21 @@ class MainCliTests(unittest.TestCase):
         self.assertEqual(main.resolve_simplifier(args), main.SIMPLIFIER_OPENAI)
         main.validate_simplifier_args(args)
 
+    def test_apply_simplification_plan_parser(self):
+        parser = main.build_parser()
+
+        args = parser.parse_args(
+            [
+                "apply_simplification_plan",
+                "user/input/example.musicxml",
+                "user/input/example_plan.json",
+            ]
+        )
+
+        self.assertEqual(args.command, "apply_simplification_plan")
+        self.assertEqual(args.musicxml_path, "user/input/example.musicxml")
+        self.assertEqual(args.plan_path, "user/input/example_plan.json")
+
     def test_run_simplification_backend_dispatches_to_music21(self):
         music21_module = types.ModuleType("generate_simplified_musicxml_using_music21")
         music21_module.generate_simplified_musicxml_using_music21 = mock.Mock(return_value="music21-output.musicxml")

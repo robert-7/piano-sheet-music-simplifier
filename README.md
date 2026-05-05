@@ -24,8 +24,9 @@ flowchart LR
     B -- generate_analysis_of_musicxml --> C[Analysis JSON]
 
     %% Simplify MusicXML
-    B -- generate_simplified_musicxml --> D[Simplified MusicXML]
-    C -. manual prompts .- D
+    B -- generate_simplified_musicxml --> P[LH Simplification Plan JSON]
+    C -. compact analysis .- P
+    P -- deterministic rewrite --> D[Simplified MusicXML]
 
     %% Render to PDF
     D -- convert_musicxml_to_pdf --> E[Simplified PDF]
@@ -34,6 +35,7 @@ flowchart LR
     subgraph "Outputs (timestamped)"
         E --> O1[user/output/TIMESTAMP/]
         C --> O1
+        P --> O1
         D --> O1
     end
 
@@ -91,9 +93,8 @@ Note: Outputs are written to a timestamped directory under `user/output/` unless
     * Automatic with OpenAI Agents SDK (experimental): `python main.py generate_simplified_musicxml user/input/Difficult_Sheet_Music.xml --simplifier openai --use-agent`
     * Manual (validation):
         1. `python main.py generate_simplified_musicxml --simplifier openai --manual user/input/Difficult_Sheet_Music.xml`
-        1. This renders the [system prompt](src/piano_learning/resources/system_instructions_for_chatgpt.j2) and the [user prompt](src/piano_learning/resources/user_prompt_for_chatgpt.j2).
-        1. Attach `user/input/Difficult_Sheet_Music.xml` and `user/input/Difficult_Sheet_Music_analysis.json` in ChatGPT.
-        1. Save the generated simplified file as `user/input/Difficult_Sheet_Music_simplified.xml` (re-run if needed).
+        1. This renders the [system prompt](src/piano_learning/resources/system_instructions_for_chatgpt.j2), [user prompt](src/piano_learning/resources/user_prompt_for_chatgpt.j2), simplification-plan schema, and compact analysis.
+        1. Save the returned JSON plan and apply it with `python main.py apply_simplification_plan user/input/Difficult_Sheet_Music.xml user/input/Difficult_Sheet_Music_plan.json`.
 1. Convert the simplified MusicXML file to PDF:
     * `python main.py convert_musicxml_to_pdf user/input/Difficult_Sheet_Music_simplified.xml`
 
@@ -107,7 +108,7 @@ If you require List commands and help:
 The repo currently supports two simplification backends:
 
 * `music21` (default): deterministic local simplification that does not require `OPENAI_API_KEY`
-* `openai`: AI-backed simplification that requires `OPENAI_API_KEY`
+* `openai`: AI-backed LH planning that requires `OPENAI_API_KEY`; local code validates the plan and writes MusicXML
 
 Key rules:
 
@@ -117,6 +118,8 @@ Key rules:
 * `--manual` only applies when `--simplifier openai` is selected.
 * The old `--music21` flag is still accepted as a backward-compatible alias, but new work should prefer `--simplifier music21`.
 
+OpenAI does not write full MusicXML anymore. It returns a compact left-hand simplification-plan JSON object. The local deterministic rewriter then copies the original score, preserves the right hand and structure, rewrites only the left-hand part, and validates measure parity before returning the simplified MusicXML. Non-`preserve` plan measures must cover the full source measure duration with explicit note/chord/rest events, so gaps and shortened measures are rejected before MusicXML is written.
+
 If you're debugging backend selection in isolation, start here:
 
 ```shell
@@ -124,6 +127,7 @@ python main.py generate_simplified_musicxml -h
 python main.py generate_simplified_musicxml user/input/Your_Score.musicxml
 python main.py generate_simplified_musicxml user/input/Your_Score.musicxml --simplifier openai
 python main.py generate_simplified_musicxml user/input/Your_Score.musicxml --simplifier openai --manual
+python main.py apply_simplification_plan user/input/Your_Score.musicxml user/input/Your_Score_plan.json
 ```
 
 The selected backend is logged to `user/output/.../piano_learning.log`, which is the quickest way to confirm whether you are exercising `music21`, OpenAI background mode, or the experimental agent path.
@@ -159,6 +163,7 @@ OpenAI-specific notes:
 * You only need `OPENAI_API_KEY` for commands that use `--simplifier openai`.
 * The default OpenAI execution path is the Responses API in background mode.
 * `--use-agent` is supported as an experimental path for isolated validation only.
-* `--manual` renders the prompts without calling the API, which is useful when you want to inspect the exact prompt payload independently of local code.
+* `--manual` renders the plan-generation prompts without calling the API, which is useful when you want to inspect the exact prompt payload independently of local code.
+* The OpenAI path saves debug artifacts for the compact analysis, schema, model output, validated plan, and generated MusicXML under the selected output directory.
 
 Run `python main.py generate_simplified_musicxml --simplifier openai --manual user/input/Difficult_Sheet_Music.xml` to generate the prompt files.
