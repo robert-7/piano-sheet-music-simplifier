@@ -27,13 +27,13 @@ repos:
 
   # python linting
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.15.0
+    rev: v3.17.0
     hooks:
       - id: reorder-python-imports
 
   # markdown linting
   - repo: https://github.com/markdownlint/markdownlint
-    rev: v0.13.0
+    rev: v0.17.0
     hooks:
       - id: markdownlint
         args: ['--style', '.markdownlint.rb']
@@ -43,13 +43,13 @@ repos:
 
   # python linting
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.20.0
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
 
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
         entry: yamllint -c .yamllint.yaml --strict .
