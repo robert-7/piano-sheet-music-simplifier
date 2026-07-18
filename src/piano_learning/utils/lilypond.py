@@ -47,12 +47,25 @@ def convert_musicxml_to_pdf(musicxml_path: str, out_dir: Path, overwrite: bool =
     stem = src.stem
     us = environment.UserSettings()
     us["lilypondPath"] = lily
-    dst = out_dir / f"{stem}.LilyPond.pdf"
+    # Use an absolute path: LilyPond changes its working directory to the output
+    # directory, so a relative path would no longer resolve and rendering fails
+    # with "cannot find file".
+    dst = (out_dir / f"{stem}.LilyPond.pdf").resolve()
 
     if build_utils.needs_build(src, dst, overwrite=overwrite):
         logger.info(f"Converting {src} to {dst} with LilyPond...")
         score = score_utils.load_score(str(src))
-        score.write("lily.pdf", fp=str(dst))
+        # music21's LilyPond backend writes the intermediate .ly source to `fp`
+        # and appends the format extension to name the output. Pass the path
+        # without the .pdf suffix so we get a single, correctly named PDF (not a
+        # doubled `.pdf.pdf`) and the .ly source lands on `lily_base`.
+        lily_base = dst.with_suffix("")
+        produced = Path(str(score.write("lily.pdf", fp=str(lily_base))))
+        # Remove the leftover .ly source music21 wrote to `lily_base`.
+        if lily_base.exists():
+            lily_base.unlink()
+        if produced != dst:
+            logger.debug(f"LilyPond produced {produced}, expected {dst}")
     else:
         logger.info(f"Skipping {dst}, already up to date.")
 

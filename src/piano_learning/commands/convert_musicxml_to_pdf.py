@@ -26,7 +26,9 @@ def convert_musicxml_to_pdfs(
         logger.info("Converting with LilyPond...")
         try:
             results[key] = lilypond.convert_musicxml_to_pdf(musicxml_path, out_dir=out_dir, overwrite=overwrite)
-        except (FileNotFoundError, RuntimeError) as e:
+        except Exception as e:
+            # Catch broadly (e.g. music21's LilyTranslateException) so a LilyPond
+            # failure still allows the MuseScore render below to run.
             errors[key] = e
             logger.error(f"{key} failed: {e}")
 
@@ -35,7 +37,9 @@ def convert_musicxml_to_pdfs(
         logger.info("Converting with MuseScore...")
         try:
             results[key] = musescore.convert_musicxml_to_pdf(musicxml_path, out_dir=out_dir, overwrite=overwrite)
-        except (FileNotFoundError, RuntimeError) as e:
+        except Exception as e:
+            # Catch broadly so a MuseScore failure still surfaces via the
+            # aggregated error below rather than aborting the whole command.
             errors[key] = e
             logger.error(f"{key} failed: {e}")
 

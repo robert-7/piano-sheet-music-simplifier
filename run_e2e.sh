@@ -120,7 +120,7 @@ echo "⏳ Step 4/4: Converting MusicXML to PDF..."
 ./main.py --out-dir "${OUTPUT_DIR}" convert_musicxml_to_pdf --convert-with-lilypond --convert-with-musescore "${MUSICXML_FILE}" >> "${LOG_FILE}" 2>&1
 echo "✅ MusicXML to PDF conversion complete."
 echo "↪⏳ Validating PDFs were created..."
-PDF_OUTPUT_LILYPOND="${OUTPUT_DIR}/${BASENAME}.LilyPond.pdf.pdf"
+PDF_OUTPUT_LILYPOND="${OUTPUT_DIR}/${BASENAME}.LilyPond.pdf"
 if [ -f "${PDF_OUTPUT_LILYPOND}" ]; then
     echo "↪✅ Found PDF file: ${PDF_OUTPUT_LILYPOND}"
 else
