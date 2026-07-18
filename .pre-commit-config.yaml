@@ -54,7 +54,7 @@ repos:
       - id: yamllint
         entry: yamllint -c .yamllint.yaml --strict .
 
-  # local hook: validate the README Mermaid diagram
+  # local hooks
   - repo: local
     hooks:
       - id: diagram-validate
@@ -62,3 +62,18 @@ repos:
         entry: bash scripts/diagram.sh --check
         language: system
         files: README.md
+
+      # Run the unit test suite. Uses an isolated env (language: python) so it
+      # works in CI without the workflow installing requirements.txt.
+      - id: unittests
+        name: Run unit tests
+        entry: python -m unittest discover -s tests -v
+        language: python
+        # Keep in sync with requirements.txt (only what the tests import).
+        additional_dependencies:
+          - music21==10.5.0
+          - openai-agents==0.18.2
+          - python-dotenv==1.2.2
+          - Jinja2==3.1.6
+        pass_filenames: false
+        files: \.py$

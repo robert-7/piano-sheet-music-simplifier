@@ -1,0 +1,7 @@
+# This directory is for generated output files
+# The pipeline creates timestamped subdirectories here with:
+#   - Simplified PDF files
+#   - Analysis JSON files
+#   - Simplification plan JSON files
+#   - Simplified MusicXML files
+#   - Log files

@@ -1,11 +1,15 @@
 ---
 services:
   piano-learning:
+    # Audiveris only ships an x86_64 Linux build, so the whole image must be
+    # amd64. On Apple Silicon this runs under Rosetta emulation (enable
+    # "Use Rosetta for x86/amd64 emulation" in Docker Desktop settings).
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        AUDIVERIS_VERSION: "5.7.1"
+        AUDIVERIS_VERSION: "5.11.0"
     image: piano-learning:latest
     container_name: piano-learning
     working_dir: /app

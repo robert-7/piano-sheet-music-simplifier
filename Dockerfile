@@ -6,13 +6,15 @@
 FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG AUDIVERIS_VERSION=5.7.1
+ARG AUDIVERIS_VERSION=5.11.0
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     VIRTUAL_ENV=/opt/venv \
     QT_QPA_PLATFORM=offscreen \
-    PATH="/opt/venv/bin:/usr/local/bin:${PATH}"
+    PATH="/opt/venv/bin:/usr/local/bin:${PATH}" \
+    # Where Audiveris' bundled Tesseract looks for OCR language data.
+    TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 
 WORKDIR /app
 
@@ -28,6 +30,8 @@ RUN set -eux; \
         lilypond \
         musescore \
         poppler-utils \
+        tesseract-ocr-eng \
+        libgtk-3-0t64 \
         fonts-dejavu-core; \
     rm -rf /var/lib/apt/lists/*
 
