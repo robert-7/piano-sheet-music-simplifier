@@ -7,11 +7,12 @@ from typing import Literal
 
 from music21 import analysis
 from music21 import chord
-from music21 import converter
 from music21 import duration
 from music21 import meter
 from music21 import note
 from music21 import stream
+
+from src.piano_learning.utils import score_utils
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +191,7 @@ def generate_simplified_musicxml_using_music21(musicxml_path: str, out_dir: str 
     """
     Parse MusicXML, simplify the left hand to block chords, and write a new MusicXML.
     """
-    s = converter.parse(musicxml_path)
+    s = score_utils.load_score(musicxml_path)
 
     # Reduce LH to block chords
     s_reduced = reduce_left_hand_in_score_to_chords(s, window="beat")

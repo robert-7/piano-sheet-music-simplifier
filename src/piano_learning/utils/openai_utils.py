@@ -2,6 +2,7 @@ import logging
 import os
 import time
 from typing import Any
+from typing import cast
 from typing import Tuple
 
 import httpx
@@ -9,6 +10,7 @@ import openai
 from agents import Agent
 from agents import Runner
 from agents import set_default_openai_client
+from openai.types.shared_params import Reasoning
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +71,18 @@ def _build_openai_client(
     )
 
 
+def _build_async_openai_client(
+    timeout: httpx.Timeout,
+    max_retries: int,
+    api_key: str | None = None,
+) -> openai.AsyncOpenAI:
+    return openai.AsyncOpenAI(
+        api_key=api_key or get_openai_api_key(),
+        timeout=timeout,
+        max_retries=max_retries,
+    )
+
+
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.5")
 OPENAI_AGENT_MODEL = os.getenv("OPENAI_AGENT_MODEL", "gpt-5.5")
 
@@ -103,7 +117,7 @@ def run_openai_response_in_background(
         input=input_text,
         background=True,
         max_output_tokens=max_output_tokens,
-        reasoning={"effort": reasoning_effort, "summary": reasoning_summary},
+        reasoning=cast(Reasoning, {"effort": reasoning_effort, "summary": reasoning_summary}),
     )
 
     times_slept = 0
@@ -123,7 +137,8 @@ def run_openai_response_in_background(
             except Exception:
                 output_text = ""
             try:
-                reasoning_summary = _coerce_to_text(response.reasoning.summary)
+                reasoning = response.reasoning
+                reasoning_summary = _coerce_to_text(reasoning.summary) if reasoning else ""
             except Exception:
                 reasoning_summary = ""
             return _coerce_to_text(output_text), reasoning_summary
@@ -156,7 +171,8 @@ def run_openai_response_with_agent(
         (final_output_text, reasoning_summary)
     """
     logger.warning("OpenAI agent mode is experimental. Prefer the background Responses API path for normal runs.")
-    client = _build_openai_client(timeout=timeout, max_retries=max_retries, api_key=api_key)
+    # The Agents SDK requires an AsyncOpenAI client; a sync openai.OpenAI is rejected.
+    client = _build_async_openai_client(timeout=timeout, max_retries=max_retries, api_key=api_key)
     set_default_openai_client(client)
     code_execution_agent = Agent(
         name="Expert Piano Arranger & Copyist",

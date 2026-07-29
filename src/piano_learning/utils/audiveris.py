@@ -12,7 +12,11 @@ from src.piano_learning.utils import image_utils
 
 logger = logging.getLogger(__name__)
 
-def which_exe(candidates: list[str]) -> str | None:
+def which_exe(candidates: list[str]) -> str:
+    """Return the resolved path of the first candidate found on PATH, else raise.
+
+    Never returns None: it either returns a concrete path or raises RuntimeError.
+    """
     for c in candidates:
         p = shutil.which(c)
         if p:

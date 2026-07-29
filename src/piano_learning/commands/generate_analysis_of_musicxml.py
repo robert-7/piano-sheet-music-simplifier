@@ -39,6 +39,7 @@ Usage
 """
 from __future__ import annotations
 
+import copy
 import json
 import logging
 from dataclasses import asdict
@@ -56,16 +57,19 @@ from typing import Tuple
 from music21 import analysis
 from music21 import bar
 from music21 import chord
-from music21 import converter
 from music21 import duration
 from music21 import interval
+from music21 import key
 from music21 import metadata as m21metadata
 from music21 import meter
 from music21 import note
+from music21 import pitch
 from music21 import roman
 from music21 import spanner
 from music21 import stream
 from music21 import tempo
+
+from src.piano_learning.utils import score_utils
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +97,12 @@ def elem_offset(e: Any) -> float:
         except Exception:
             return 0.0
 
-def pitch_name(n: note.Note) -> str:
+def pitch_name(n: note.Note | pitch.Pitch) -> str:
     """Canonical pitch label with octave (e.g., 'D5')."""
-    return n.nameWithOctave if hasattr(n, "nameWithOctave") else str(n.pitch)
+    p = n if isinstance(n, pitch.Pitch) else n.pitch
+    return p.nameWithOctave
 
-def to_jsonable(obj):
+def to_jsonable(obj: Any) -> Any:
     """Ensure all outputs are JSON-serializable (fallback to str for unknown types)."""
     if isinstance(obj, (list, tuple)):
         return [to_jsonable(x) for x in obj]
@@ -422,7 +427,7 @@ def extract_metadata(s: stream.Score) -> Metadata:
             covered_measures = sorted(set(covered_measures))
             repeat_info.append(RepeatInfo(type="volta", measures=covered_measures))
 
-    return Metadata(timeSignatures=ts_map, tempi=tempo_map, pickupBeats=pickup_beats, repeats=repeat_info)
+    return Metadata(timeSignatures=ts_map, tempi=tempo_map, pickupBeats=float(pickup_beats), repeats=repeat_info)
 
 
 def detect_key_map(s: stream.Score, window_measures: int = 4) -> list[KeyArea]:
@@ -441,12 +446,11 @@ def detect_key_map(s: stream.Score, window_measures: int = 4) -> list[KeyArea]:
         end_idx = min(i + window_measures, n)
         seg = stream.Stream()
         for j in range(i, end_idx):
-            # append actual note elements (not iterators/lists); clone to avoid moving them
+            # append copies of the note elements (not iterators/lists) so the
+            # temporary analysis segment never shares/moves elements from the
+            # source score.
             for nEl in measures[j].flatten().notes:
-                try:
-                    seg.append(nEl.clone())
-                except Exception:
-                    seg.append(nEl)
+                seg.append(copy.deepcopy(nEl))
         try:
             kd = analysis.discrete.KrumhanslSchmuckler()
             k = kd.getSolution(seg)
@@ -520,12 +524,12 @@ def extract_harmonies(s: stream.Score) -> list[HarmonyEvent]:
             try:
                 lk = key_at_measure(m.number)
                 tonic, mode = lk.split()
-                rn_obj = roman.romanNumeralFromChord(c, keyStr=f"{tonic} {mode}")
+                rn_obj = roman.romanNumeralFromChord(c, key.Key(tonic, mode))
                 rn_text = rn_obj.figure
             except Exception:
                 rn_text = None
 
-            events.append(HarmonyEvent(offset=off, qLen=beat_unit, root=root, quality=quality, inversion=inv, rn=rn_text))
+            events.append(HarmonyEvent(offset=off, qLen=float(beat_unit), root=root, quality=quality, inversion=inv, rn=rn_text))
 
     # Merge consecutive identical harmonies → harmonic rhythm
     merged: list[HarmonyEvent] = []
@@ -814,7 +818,7 @@ def build_analysis_bundle(path: str) -> dict[str, Any]:
     Parse the score and assemble the full analysis bundle that a downstream
     "simplify the accompaniment, keep the melody" engine can consume.
     """
-    s = converter.parse(path)
+    s = score_utils.load_score(path)
 
     provenance = build_provenance(s, source_path=Path(path))
     conventions = build_conventions(s)
