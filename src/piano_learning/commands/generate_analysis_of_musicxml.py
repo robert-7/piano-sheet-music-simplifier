@@ -48,16 +48,11 @@ from datetime import datetime
 from datetime import timezone
 from pathlib import Path
 from typing import Any
-from typing import Dict
-from typing import List
 from typing import Literal
-from typing import Optional
-from typing import Tuple
 
 from music21 import analysis
 from music21 import bar
 from music21 import chord
-from music21 import duration
 from music21 import interval
 from music21 import key
 from music21 import metadata as m21metadata
@@ -415,7 +410,7 @@ def extract_metadata(s: stream.Score) -> Metadata:
             spanned = rb.getSpannedElements()
             for el in spanned:
                 meas = el.getContextByClass(stream.Measure)
-                if meas is not None and meas.number is not None:
+                if meas is not None:
                     covered_measures.append(int(meas.number))
         except Exception:
             pass
@@ -757,8 +752,8 @@ def extract_ranges(s: stream.Score) -> Ranges:
         }
 
     if len(s.parts) >= 2:
-        RH = part_range(s.parts[0])
-        LH = part_range(s.parts[-1])
+        rh = part_range(s.parts[0])
+        lh = part_range(s.parts[-1])
     elif len(s.parts) == 1:
         # Single part: rough split by pitch median to emulate RH/LH bounds
         p = s.parts[0]
@@ -774,21 +769,21 @@ def extract_ranges(s: stream.Score) -> Ranges:
             median_midi = sorted_midis[len(sorted_midis) // 2]
             rh_midis = [m for m in all_midis if m >= median_midi]
             lh_midis = [m for m in all_midis if m < median_midi]
-            RH = {
+            rh = {
                 "min": note.Note(min(rh_midis)).nameWithOctave if rh_midis else "",
                 "max": note.Note(max(rh_midis)).nameWithOctave if rh_midis else "",
             }
-            LH = {
+            lh = {
                 "min": note.Note(min(lh_midis)).nameWithOctave if lh_midis else "",
                 "max": note.Note(max(lh_midis)).nameWithOctave if lh_midis else "",
             }
         else:
-            RH = {"min": "", "max": ""}
-            LH = {"min": "", "max": ""}
+            rh = {"min": "", "max": ""}
+            lh = {"min": "", "max": ""}
     else:
-        RH = {"min": "", "max": ""}
-        LH = {"min": "", "max": ""}
-    return Ranges(RH=RH, LH=LH)
+        rh = {"min": "", "max": ""}
+        lh = {"min": "", "max": ""}
+    return Ranges(RH=rh, LH=lh)
 
 
 def detect_cadences(harmonies: list[HarmonyEvent], key_map: list[KeyArea]) -> list[Cadence]:

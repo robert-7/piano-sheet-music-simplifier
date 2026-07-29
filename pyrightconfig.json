@@ -2,7 +2,7 @@
   "include": [
     "src"
   ],
-  "typeCheckingMode": "basic",
+  "typeCheckingMode": "standard",
   "venvPath": ".",
   "venv": ".venv"
 }

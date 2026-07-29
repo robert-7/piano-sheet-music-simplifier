@@ -125,7 +125,7 @@ def extract_plan_json(output_text: str) -> dict[str, Any]:
 
 
 def validate_plan(
-    plan: dict[str, Any],
+    plan: Any,
     *,
     source_measure_numbers: list[int] | None = None,
     measure_durations_by_number: dict[int, float] | None = None,
