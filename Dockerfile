@@ -1,8 +1,11 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1
 
 # Piano-Learning container
-# Includes: Python runtime, project deps, OpenJDK 17, Audiveris 5.7.1, LilyPond
+# Includes: Python runtime, project deps, OpenJDK, Audiveris, LilyPond
 
+# Stay on 24.04 until Audiveris ships a matching deb: the -ubuntu24.04- build is
+# extracted with dpkg-deb -x (no OS checks), but under Apple Silicon's amd64
+# emulation the newer tar in 26.04 hits an ENOSYS syscall and the extract fails.
 FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -26,7 +29,7 @@ RUN set -eux; \
         wget curl gnupg \
         python3 python3-venv python3-pip \
         git \
-        openjdk-17-jre-headless \
+        openjdk-21-jre-headless \
         lilypond \
         musescore \
         poppler-utils \
@@ -45,7 +48,9 @@ COPY requirements.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt
 
-# Install Audiveris 5.7.1 (extract .deb contents to avoid post-install scripts)
+# Install Audiveris (version pinned by AUDIVERIS_VERSION; extract .deb contents
+# with dpkg-deb -x to avoid post-install scripts). The -ubuntu24.04- asset
+# matches the base image above; it is the newest Linux build Audiveris ships.
 RUN set -eux; \
     tmpdeb="/tmp/audiveris.deb"; \
     wget -O "$tmpdeb" "https://github.com/Audiveris/audiveris/releases/download/${AUDIVERIS_VERSION}/Audiveris-${AUDIVERIS_VERSION}-ubuntu24.04-x86_64.deb"; \

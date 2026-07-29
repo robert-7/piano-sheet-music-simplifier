@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # scripts/diagram.sh --check|--render
-# - Extracts the first Mermaid block from README.md
+# - Extracts the first Mermaid block from ARCHITECTURE.md
 # - --check: verifies extraction and optionally checks mmdc availability
 # - --render: renders docs/architecture.svg via mermaid-cli (mmdc) if available
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
-README="$ROOT_DIR/README.md"
+README="$ROOT_DIR/ARCHITECTURE.md"
 OUT_DIR="$ROOT_DIR/docs"
 TMP_MMD="$OUT_DIR/architecture.mmd"
 OUT_SVG="$OUT_DIR/architecture.svg"
@@ -24,7 +24,7 @@ else
 fi
 
 if [[ ! -f "$README" ]]; then
-  echo "README.md not found at $README" >&2
+  echo "ARCHITECTURE.md not found at $README" >&2
   exit 1
 fi
 
@@ -39,7 +39,7 @@ awk '
 ' "$README" > "$TMP_MMD"
 
 if [[ ! -s "$TMP_MMD" ]]; then
-  echo "No Mermaid block found in README.md" >&2
+  echo "No Mermaid block found in ARCHITECTURE.md" >&2
   exit 1
 fi
 

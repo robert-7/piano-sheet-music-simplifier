@@ -58,10 +58,29 @@ repos:
   - repo: local
     hooks:
       - id: diagram-validate
-        name: Validate Mermaid diagram in README
+        name: Validate Mermaid diagram in ARCHITECTURE
         entry: bash scripts/diagram.sh --check
         language: system
-        files: README.md
+        files: ARCHITECTURE.md
+
+      # Type-check touched source files with pyright (basic mode, config in
+      # pyrightconfig.json). Uses an isolated env (language: python) with the
+      # runtime deps so imports resolve in CI without installing requirements.txt.
+      # pass_filenames acts as a ratchet: only files changed in the commit are
+      # checked, so pre-existing type debt does not block commits, but new debt
+      # in touched files does.
+      - id: pyright
+        name: Type check (pyright, basic)
+        entry: pyright
+        language: python
+        pass_filenames: true
+        files: ^src/.*\.py$
+        additional_dependencies:
+          - pyright==1.1.411
+          - music21==10.5.0
+          - openai-agents==0.18.2
+          - python-dotenv==1.2.2
+          - Jinja2==3.1.6
 
       # Run the unit test suite. Uses an isolated env (language: python) so it
       # works in CI without the workflow installing requirements.txt.
