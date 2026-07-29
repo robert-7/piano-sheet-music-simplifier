@@ -58,10 +58,10 @@ repos:
   - repo: local
     hooks:
       - id: diagram-validate
-        name: Validate Mermaid diagram in README
+        name: Validate Mermaid diagram in ARCHITECTURE
         entry: bash scripts/diagram.sh --check
         language: system
-        files: README.md
+        files: ARCHITECTURE.md
 
       # Run the unit test suite. Uses an isolated env (language: python) so it
       # works in CI without the workflow installing requirements.txt.
