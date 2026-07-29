@@ -23,7 +23,7 @@ def _write_data_to_file_and_log(data_to_write: object, out_dir: Path, basename_p
         if isinstance(data_to_write, (dict, list)):
             f.write(json.dumps(data_to_write, ensure_ascii=False, indent=2))
         else:
-            f.write(openai_utils._coerce_to_text(data_to_write))
+            f.write(openai_utils.coerce_to_text(data_to_write))
     logger.info(f"✅ {basename_suffix} saved to: {path}")
     return path
 

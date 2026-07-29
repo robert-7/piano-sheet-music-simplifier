@@ -40,7 +40,7 @@ def get_openai_api_key() -> str:
     return _get_required_env("OPENAI_API_KEY")
 
 
-def _coerce_to_text(value: Any) -> str:
+def coerce_to_text(value: Any) -> str:
     """
     Best-effort conversion for SDK response objects that are not plain strings.
     """
@@ -49,7 +49,7 @@ def _coerce_to_text(value: Any) -> str:
     if isinstance(value, str):
         return value
     if isinstance(value, list):
-        return "\n".join(_coerce_to_text(item) for item in value if item is not None)
+        return "\n".join(coerce_to_text(item) for item in value if item is not None)
     try:
         text = getattr(value, "text")
         if isinstance(text, str):
@@ -138,10 +138,10 @@ def run_openai_response_in_background(
                 output_text = ""
             try:
                 reasoning = response.reasoning
-                reasoning_summary = _coerce_to_text(reasoning.summary) if reasoning else ""
+                reasoning_summary = coerce_to_text(reasoning.summary) if reasoning else ""
             except Exception:
                 reasoning_summary = ""
-            return _coerce_to_text(output_text), reasoning_summary
+            return coerce_to_text(output_text), reasoning_summary
 
         emoji = "⏳" if status in ("queued",) else "🛠️"
         logger.info(
@@ -197,4 +197,4 @@ def run_openai_response_with_agent(
                 raise
 
     final_output = getattr(result, "final_output", "")
-    return _coerce_to_text(final_output), ""
+    return coerce_to_text(final_output), ""

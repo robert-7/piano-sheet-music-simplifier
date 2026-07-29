@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 from typing import Literal
 
 from music21 import analysis
@@ -16,7 +17,7 @@ from src.piano_learning.utils import score_utils
 
 logger = logging.getLogger(__name__)
 
-def ql(e) -> float:
+def ql(e: Any) -> float:
     try:
         return float(e.quarterLength)
     except Exception:
