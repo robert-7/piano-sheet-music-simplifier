@@ -20,12 +20,19 @@ ALLOWED_TEXTURES = {
     "rest",
     "preserve",
 }
+# Distinctive phrases a model emits when it deliberately truncates its output.
+# These are safe to match anywhere in the response.
 TRUNCATION_MARKERS = (
     "TRUNCATED",
-    "...",
     "[...continued",
     "[continued",
     "continued]",
+)
+# A bare ellipsis is only a truncation signal when it *ends* the output; an
+# ellipsis inside a JSON string value (e.g. a summary) is legitimate content.
+TRAILING_TRUNCATION_MARKERS = (
+    "...",
+    "…",  # unicode horizontal ellipsis
 )
 
 
@@ -299,3 +306,10 @@ def _reject_truncation_markers(text: str) -> None:
     for marker in TRUNCATION_MARKERS:
         if marker.upper() in upper_text:
             raise ValueError(f"Model response contains truncation marker {marker!r}.")
+
+    stripped = text.rstrip()
+    for marker in TRAILING_TRUNCATION_MARKERS:
+        if stripped.endswith(marker):
+            raise ValueError(
+                f"Model response ends with truncation marker {marker!r}; output looks truncated."
+            )

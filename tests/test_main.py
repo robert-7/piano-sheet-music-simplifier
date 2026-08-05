@@ -1,7 +1,6 @@
 import os
 import subprocess
 import sys
-import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -124,15 +123,15 @@ class MainCliTests(unittest.TestCase):
         self.assertEqual(args.plan_path, "user/input/example_plan.json")
 
     def test_run_simplification_backend_dispatches_to_music21(self):
-        music21_module = types.ModuleType("generate_simplified_musicxml_using_music21")
-        music21_module.generate_simplified_musicxml_using_music21 = mock.Mock(return_value="music21-output.musicxml")
+        # Patch the function on the real module object so the mock holds
+        # regardless of whether the submodule was already imported elsewhere.
+        from src.piano_learning.commands import generate_simplified_musicxml_using_music21 as music21_cmd
 
-        with mock.patch.dict(
-            sys.modules,
-            {
-                "src.piano_learning.commands.generate_simplified_musicxml_using_music21": music21_module,
-            },
-        ):
+        with mock.patch.object(
+            music21_cmd,
+            "generate_simplified_musicxml_using_music21",
+            return_value="music21-output.musicxml",
+        ) as mocked:
             result = main.run_simplification_backend(
                 "user/input/example.musicxml",
                 Path("user/output"),
@@ -140,18 +139,18 @@ class MainCliTests(unittest.TestCase):
             )
 
         self.assertEqual(result, "music21-output.musicxml")
-        music21_module.generate_simplified_musicxml_using_music21.assert_called_once()
+        mocked.assert_called_once()
 
     def test_run_simplification_backend_dispatches_to_openai(self):
-        openai_module = types.ModuleType("generate_simplified_musicxml_using_ai")
-        openai_module.generate_simplified_musicxml = mock.Mock(return_value="openai-output.musicxml")
+        # Patch the function on the real module object so the mock holds
+        # regardless of whether the submodule was already imported elsewhere.
+        from src.piano_learning.commands import generate_simplified_musicxml_using_ai as ai_cmd
 
-        with mock.patch.dict(
-            sys.modules,
-            {
-                "src.piano_learning.commands.generate_simplified_musicxml_using_ai": openai_module,
-            },
-        ):
+        with mock.patch.object(
+            ai_cmd,
+            "generate_simplified_musicxml",
+            return_value="openai-output.musicxml",
+        ) as mocked:
             result = main.run_simplification_backend(
                 "user/input/example.musicxml",
                 Path("user/output"),
@@ -160,7 +159,7 @@ class MainCliTests(unittest.TestCase):
             )
 
         self.assertEqual(result, "openai-output.musicxml")
-        openai_module.generate_simplified_musicxml.assert_called_once_with(
+        mocked.assert_called_once_with(
             "user/input/example.musicxml",
             Path("user/output"),
             use_agent=True,

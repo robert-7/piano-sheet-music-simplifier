@@ -31,7 +31,7 @@ def generate_simplified_musicxml(
     musicxml_path: str,
     out_dir: Path,
     use_agent: bool = False,
-) -> Path | None:
+) -> Path:
     """
     Generates a simplified MusicXML file from an OpenAI-produced LH plan.
     """
@@ -125,9 +125,13 @@ def generate_simplified_musicxml(
 
         return musicxml_output_path
 
-    except Exception as e:
-        logger.error(f"An error occurred: {e}")
-        return None
+    except Exception:
+        # Do not swallow failures into a silent None: a validation/parse/API
+        # error is indistinguishable from "the model returned an unmodified
+        # plan" if it disappears here. Log the full traceback for context and
+        # re-raise so the caller (and the CLI process) fails loudly.
+        logger.exception("Failed to generate simplified MusicXML from OpenAI plan.")
+        raise
 
 def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str, out_dir: Path) -> None:
     """
