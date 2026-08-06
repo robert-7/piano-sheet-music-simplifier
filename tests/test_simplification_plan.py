@@ -101,6 +101,22 @@ class SimplificationPlanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "truncation marker"):
             simplification_plan.extract_plan_json('{"schemaVersion":"lh-simplification-plan/v1"} ...')
 
+    def test_extract_plan_json_allows_ellipsis_inside_string_values(self):
+        # Regression for #81: a complete plan whose summary contains an ellipsis
+        # must not be misread as truncated. Previously "..." was matched anywhere
+        # in the raw output, so legitimate content was rejected.
+        text = (
+            '{"schemaVersion":"lh-simplification-plan/v1","scope":"left-hand-only",'
+            '"summary":"LH reduced to block dyads on strong beats...",'
+            '"measures":[{"number":1,"texture":"rest",'
+            '"events":[{"offset":0,"duration":1,"rest":true}]}]}'
+        )
+
+        plan = simplification_plan.extract_plan_json(text)
+
+        self.assertEqual(plan["summary"], "LH reduced to block dyads on strong beats...")
+        self.assertEqual(plan["measures"][0]["number"], 1)
+
     def test_compact_analysis_keeps_only_plan_relevant_fields(self):
         analysis = {
             "metadata": {"timeSignatures": [{"mStart": 1, "sig": "3/4"}]},
