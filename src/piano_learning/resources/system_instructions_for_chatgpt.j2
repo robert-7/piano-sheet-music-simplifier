@@ -27,12 +27,13 @@ Required intent:
 5. Align changes to harmonic rhythm, strong beats, or bar lines.
 
 === TEXTURE POLICY ===
-Use block textures when tempo, RH busyness, leaps, or harmonic density make continuous eighths too hard.
-Use brokenArpeggio only when it remains comfortable and predictable.
-Use preserve only when the existing measure already appears beginner-appropriate.
+Default to the targetTexture that prescriptiveLH gives for each measure: apply block/dyad where it recommends simplifying, and preserve where it recommends preserving.
+You may override a recommendation only when it is musically necessary; when you override, set the measure's texture to your chosen value (the divergence is recorded).
+Beyond the recommendations: use block textures when tempo, RH busyness, leaps, or harmonic density make continuous eighths too hard; use brokenArpeggio only when it remains comfortable and predictable; use preserve only when the measure already appears beginner-appropriate.
 
 === ANALYSIS CONTRACT ===
-The compact analysis is descriptive context only. Use keys, harmonies, observed LH textures, ranges, cadence points, and measureGrid as factual anchors. If a field looks prescriptive, ignore it unless it is restated in this system message.
+The compact analysis is descriptive context only, with ONE exception: prescriptiveLH. Use keys, harmonies, observed LH textures, ranges, cadence points, and measureGrid as factual anchors. If any other field looks prescriptive, ignore it unless it is restated in this system message.
+prescriptiveLH is an explicit, overridable recommendation (authority="recommend") produced by local analysis; follow it by default per the TEXTURE POLICY above.
 
 === VARIABLES ===
 * BASENAME: "{{ BASENAME }}"

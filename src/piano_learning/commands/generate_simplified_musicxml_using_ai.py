@@ -9,6 +9,7 @@ from src.piano_learning.commands import generate_analysis_of_musicxml
 from src.piano_learning.utils import musicxml_rewriter
 from src.piano_learning.utils import openai_utils
 from src.piano_learning.utils import simplification_plan
+from src.piano_learning.utils import simplification_report
 from src.piano_learning.utils import template_utils
 
 logger = logging.getLogger(__name__)
@@ -122,6 +123,15 @@ def generate_simplified_musicxml(
         _write_data_to_file_and_log(reasoning, out_dir, p.stem, "simplified_reasoning", "txt")
         _write_data_to_file_and_log(output_text, out_dir, p.stem, "simplification_plan_full_output", "txt")
         _write_data_to_file_and_log(plan, out_dir, p.stem, "simplification_plan", "json")
+
+        # Make "nearly unmodified" output visible (issue #47): quantify how much
+        # actually changed and warn loudly when a run barely touched the source.
+        report = simplification_report.build_simplification_report(musicxml_path, plan)
+        _write_data_to_file_and_log(report, out_dir, p.stem, "simplification_report", "json")
+        if report["unmodifiedFlag"]:
+            logger.warning("⚠️ Nearly unmodified output: %s", simplification_report.summary_line(report))
+        else:
+            logger.info("Simplification report: %s", simplification_report.summary_line(report))
 
         return musicxml_output_path
 

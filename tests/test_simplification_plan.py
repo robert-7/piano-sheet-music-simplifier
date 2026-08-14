@@ -124,6 +124,30 @@ class SimplificationPlanTests(unittest.TestCase):
         self.assertNotIn("nctMask", compact)
         self.assertEqual(compact["ranges"], {"LH": {"low": "C2"}})
 
+    def test_compact_analysis_keeps_prescriptive_recommendations(self):
+        analysis = {
+            "textureLH": [{"mRange": [1, 1], "pattern": "brokenArpeggio"}],
+            "prescriptiveLH": [
+                {"number": 1, "shouldSimplify": True, "targetTexture": "block", "authority": "recommend"}
+            ],
+        }
+
+        compact = simplification_plan.compact_analysis_for_plan(
+            analysis,
+            measure_grid=[{"number": 1, "duration": 4.0, "beatDuration": 1.0}],
+        )
+
+        self.assertIn("prescriptiveLH", compact)
+        self.assertEqual(compact["prescriptiveLH"][0]["targetTexture"], "block")
+
+    def test_compact_analysis_drops_empty_prescriptive(self):
+        compact = simplification_plan.compact_analysis_for_plan(
+            {"harmonies": [{"offset": 0, "qLen": 4, "root": "C"}]},
+            measure_grid=[{"number": 1, "duration": 4.0, "beatDuration": 1.0}],
+        )
+
+        self.assertNotIn("prescriptiveLH", compact)
+
 
 if __name__ == "__main__":
     unittest.main()

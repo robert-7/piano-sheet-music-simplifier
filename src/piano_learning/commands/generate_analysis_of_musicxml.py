@@ -31,7 +31,7 @@ textureLH     : LH texture tags per measure range (e.g., brokenArpeggio → bloc
 nctMask       : Coarse non-chord-tone flags to prune busy notes safely
 ranges        : Practical pitch ranges for RH/LH (for voicing limits)
 cadences      : Simple cadence hits (V→I, V→vi) to shape LH arrivals
-preferences   : Defaults the downstream arranger can honor (no shortening, etc.)
+prescriptiveLH: Per-measure recommendations (shouldSimplify + targetTexture) for the LH
 
 Usage
 -----
@@ -304,6 +304,23 @@ class Cadence:
     mEnd: int
     type: str
     key: str
+
+@dataclass
+class PrescriptiveMeasure:
+    """
+    A per-measure *recommendation* (not a command) for the LH simplification.
+
+    Unlike the descriptive extractors, this says what the arranger *should* do:
+    whether the measure's LH is busy enough to warrant reduction and, if so,
+    what target texture to aim for. Authority is "recommend" so a downstream LLM
+    may override with musical justification (see issue #47).
+    """
+    number: int
+    shouldSimplify: bool
+    targetTexture: str  # one of simplification_plan.ALLOWED_TEXTURES, e.g. block/dyad/preserve
+    reason: str
+    confidence: float  # [0,1]
+    authority: Literal["recommend"]
 
 # -------------------------------
 # Extractors
@@ -805,6 +822,122 @@ def detect_cadences(harmonies: list[HarmonyEvent], key_map: list[KeyArea]) -> li
     return out
 
 # -------------------------------
+# Prescriptive layer (recommendations)
+# -------------------------------
+
+# LH figures at these smallest units are "busy" enough that continuous playing is
+# hard for a beginner and a reduction is usually worth recommending.
+BUSY_SMALLEST_UNITS = {"eighth", "sixteenth", "thirty-second"}
+# Textures whose difficulty comes from constant motion; reducing to blocks helps.
+SIMPLIFIABLE_PATTERNS = {"brokenArpeggio", "alberti", "stride"}
+FAST_TEMPO_QPM = 120.0
+# Hand span (semitones) beyond which continuous LH figures are also ergonomically hard.
+WIDE_SPAN_SEMITONES = 16  # a tenth
+
+
+def _confidence_for_unit(smallest_unit: str, tempo_qpm: float) -> float:
+    """Confidence that a busy figure should be reduced, scaled by unit and tempo."""
+    base = {"eighth": 0.5, "sixteenth": 0.75, "thirty-second": 0.9}.get(smallest_unit, 0.4)
+    if tempo_qpm and tempo_qpm >= FAST_TEMPO_QPM:
+        base += 0.1
+    return round(min(1.0, base), 2)
+
+
+def _tempo_at(measure_number: int, tempi: list[TempoSpan]) -> float:
+    """Return the tempo (qpm) in effect at a measure, or 0.0 if unknown."""
+    current = 0.0
+    for span in sorted(tempi, key=lambda item: item.mStart):
+        if span.mStart <= measure_number:
+            current = span.qpm
+        else:
+            break
+    return current
+
+
+def _lh_span_semitones(ranges: Ranges) -> int | None:
+    """Left-hand pitch span in semitones from the range block, or None if unknown."""
+    low = ranges.LH.get("min", "")
+    high = ranges.LH.get("max", "")
+    if not low or not high:
+        return None
+    try:
+        return abs(pitch.Pitch(high).midi - pitch.Pitch(low).midi)
+    except Exception:
+        return None
+
+
+def build_prescriptive_analysis(
+    s: stream.Score,
+    *,
+    texture_spans: list[TextureSpan] | None = None,
+    metadata: Metadata | None = None,
+    ranges: Ranges | None = None,
+) -> list[PrescriptiveMeasure]:
+    """
+    Recommend, per measure, whether the LH should be simplified and to what texture.
+
+    Descriptive extractors say what the music *is*; this says what to *do* about
+    it. It reuses existing signals (texture, tempo, LH span) rather than adding a
+    new theory engine, and marks every recommendation as "recommend" so the LLM
+    keeps final musical judgment. Optional precomputed inputs let callers avoid
+    recomputing analysis that ``build_analysis_bundle`` already produced.
+    """
+    texture_spans = texture_spans if texture_spans is not None else classify_lh_texture(s)
+    if not texture_spans:
+        # No LH texture (e.g. single-part score); nothing to recommend.
+        return []
+    metadata = metadata if metadata is not None else extract_metadata(s)
+    ranges = ranges if ranges is not None else extract_ranges(s)
+
+    span_semitones = _lh_span_semitones(ranges)
+    wide_span = span_semitones is not None and span_semitones > WIDE_SPAN_SEMITONES
+
+    recommendations: list[PrescriptiveMeasure] = []
+    for span in texture_spans:
+        start, end = span.mRange
+        for number in range(int(start), int(end) + 1):
+            tempo_qpm = _tempo_at(number, metadata.tempi)
+            unit = span.smallestUnit
+            busy = unit in BUSY_SMALLEST_UNITS
+            tempo_clause = " under a fast tempo" if tempo_qpm >= FAST_TEMPO_QPM else ""
+            span_clause = "; wide LH span" if wide_span else ""
+
+            if span.pattern in SIMPLIFIABLE_PATTERNS and busy:
+                recommendations.append(
+                    PrescriptiveMeasure(
+                        number=number,
+                        shouldSimplify=True,
+                        targetTexture="block",
+                        reason=f"{span.pattern} at {unit} density{tempo_clause}{span_clause}; reduce to block chords",
+                        confidence=_confidence_for_unit(unit, tempo_qpm),
+                        authority="recommend",
+                    )
+                )
+            elif span.pattern == "octaves" and busy:
+                recommendations.append(
+                    PrescriptiveMeasure(
+                        number=number,
+                        shouldSimplify=True,
+                        targetTexture="dyad",
+                        reason=f"busy octaves at {unit}{tempo_clause}; sustain as dyads",
+                        confidence=round(max(0.0, _confidence_for_unit(unit, tempo_qpm) - 0.1), 2),
+                        authority="recommend",
+                    )
+                )
+            else:
+                recommendations.append(
+                    PrescriptiveMeasure(
+                        number=number,
+                        shouldSimplify=False,
+                        targetTexture="preserve",
+                        reason=f"{span.pattern} at {unit} is already beginner-appropriate",
+                        confidence=0.5,
+                        authority="recommend",
+                    )
+                )
+    return recommendations
+
+# -------------------------------
 # Orchestrator
 # -------------------------------
 
@@ -826,6 +959,12 @@ def build_analysis_bundle(path: str) -> dict[str, Any]:
     nct_mask = build_nct_mask(s, harmonies)
     ranges = extract_ranges(s)
     cadences = detect_cadences(harmonies, keys)
+    prescriptive = build_prescriptive_analysis(
+        s,
+        texture_spans=left_hand_texture,
+        metadata=metadata,
+        ranges=ranges,
+    )
 
     bundle = {
         "provenance": asdict(provenance),
@@ -839,6 +978,7 @@ def build_analysis_bundle(path: str) -> dict[str, Any]:
         "nctMask": [asdict(e) for e in nct_mask],
         "ranges": asdict(ranges),
         "cadences": [asdict(c) for c in cadences],
+        "prescriptiveLH": [asdict(p) for p in prescriptive],
     }
     return to_jsonable(bundle)
 

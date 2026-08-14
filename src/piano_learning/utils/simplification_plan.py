@@ -90,6 +90,10 @@ def compact_analysis_for_plan(
         "keys": analysis.get("keys", []),
         "harmonies": analysis.get("harmonies", []),
         "textureLH": analysis.get("textureLH", []),
+        # Per-measure LH recommendations the model should follow by default
+        # (overridable). Unlike other fields this one is prescriptive; the system
+        # prompt calls it out as the exception to "ignore prescriptive fields".
+        "prescriptiveLH": analysis.get("prescriptiveLH", []),
         "ranges": {"LH": analysis.get("ranges", {}).get("LH")},
         "cadences": analysis.get("cadences", []),
     }

@@ -216,6 +216,14 @@ def build_parser() -> argparse.ArgumentParser:
     apply_plan_parser.add_argument("musicxml_path", help="Path to the original MusicXML or MXL file")
     apply_plan_parser.add_argument("plan_path", help="Path to the simplification-plan JSON file")
 
+    # --- Sub-parser for compare_runs ---
+    compare_parser = subparsers.add_parser(
+        "compare_runs",
+        help="Compare the simplification reports of two runs (directories or report JSON files).",
+    )
+    compare_parser.add_argument("run_a", help="First run directory or *_simplification_report.json")
+    compare_parser.add_argument("run_b", help="Second run directory or *_simplification_report.json")
+
     # --- Sub-parser for convert_musicxml_to_pdf ---
     convert_parser = subparsers.add_parser("convert_musicxml_to_pdf", help="Convert a MusicXML file to PDF.")
     convert_parser.add_argument("musicxml_path", help="Path to the MusicXML or MXL file")
@@ -354,6 +362,11 @@ def main():
             validated_plan,
             output_path,
         )
+
+    elif args.command == "compare_runs":
+        from src.piano_learning.commands import compare_runs
+
+        compare_runs.compare_runs(args.run_a, args.run_b, out_dir=args.out_dir)
 
     elif args.command == "convert_musicxml_to_pdf":
         from src.piano_learning.commands import convert_musicxml_to_pdf

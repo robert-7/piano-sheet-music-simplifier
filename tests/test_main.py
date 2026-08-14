@@ -123,6 +123,21 @@ class MainCliTests(unittest.TestCase):
         self.assertEqual(args.musicxml_path, "user/input/example.musicxml")
         self.assertEqual(args.plan_path, "user/input/example_plan.json")
 
+    def test_compare_runs_parser(self):
+        parser = main.build_parser()
+
+        args = parser.parse_args(
+            [
+                "compare_runs",
+                "user/output/run-a",
+                "user/output/run-b",
+            ]
+        )
+
+        self.assertEqual(args.command, "compare_runs")
+        self.assertEqual(args.run_a, "user/output/run-a")
+        self.assertEqual(args.run_b, "user/output/run-b")
+
     def test_run_simplification_backend_dispatches_to_music21(self):
         music21_module = types.ModuleType("generate_simplified_musicxml_using_music21")
         music21_module.generate_simplified_musicxml_using_music21 = mock.Mock(return_value="music21-output.musicxml")

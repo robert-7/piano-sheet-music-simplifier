@@ -1,19 +1,13 @@
 import unittest
 
+from music21 import chord
+from music21 import note
+from music21 import stream
+
 from src.piano_learning.utils import musicxml_rewriter
 from src.piano_learning.utils import simplification_plan
 
-try:
-    from music21 import chord
-    from music21 import note
-    from music21 import stream
-except ImportError:  # pragma: no cover - depends on local music21 installation
-    chord = None
-    note = None
-    stream = None
 
-
-@unittest.skipIf(stream is None, "music21 is not installed")
 class MusicXmlRewriterTests(unittest.TestCase):
     def test_apply_plan_rewrites_only_last_part(self):
         score = stream.Score()
