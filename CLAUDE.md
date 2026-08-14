@@ -99,9 +99,8 @@ generation. This split is enforced hard:
   LH part from the validated plan (`write_simplified_musicxml_from_plan`, `apply_plan_to_score`),
   then checks measure parity against the source.
 
-If you change the plan JSON shape, you must update **all** of: the schema in
-`simplification_plan.py`, `validate_plan`, the rewriter, the `.j2` prompts in
-`src/piano_learning/resources/`, and `tests/test_simplification_plan.py`.
+Changing the plan JSON shape touches five coupled places (schema, validator, rewriter, prompts,
+tests). See the `changing-the-plan-schema` skill for the full checklist before you start.
 
 ## Test coverage
 

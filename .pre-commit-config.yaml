@@ -37,6 +37,9 @@ repos:
     hooks:
       - id: markdownlint
         args: ['--style', '.markdownlint.rb']
+        # Skill files require YAML front matter, which Ruby mdl cannot parse
+        # (it misfires MD041/MD029 on the leading `---` block).
+        exclude: '^\.claude/skills/'
         # Ensure pre-commit uses the system Ruby (e.g., /usr/bin/ruby 3.2)
         # instead of looking for a specific rubyX.Y binary like /usr/bin/ruby3.0
         language_version: system
