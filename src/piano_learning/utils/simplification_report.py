@@ -158,13 +158,19 @@ def build_music21_report(
     simplified_score = score_utils.load_score(str(simplified_musicxml_path))
     source_counts = _lh_note_counts_by_measure(source_score)
     simplified_counts = _lh_note_counts_by_measure(simplified_score)
+    source_events = _lh_note_events_by_measure(source_score)
+    simplified_events = _lh_note_events_by_measure(simplified_score)
     source_textures = _source_textures_by_measure(generate_analysis_of_musicxml.classify_lh_texture(source_score))
 
     per_measure: list[dict[str, Any]] = []
     for number in sorted(source_counts):
         source_count = source_counts[number]
         plan_count = simplified_counts.get(number, source_count)
-        changed = plan_count != source_count
+        # Compare actual note/chord content, not just counts: a reduction can
+        # rearrange a busy figure into fewer, denser events that happen to sum
+        # to the same note count (e.g. an eighth-note Alberti bar collapsed
+        # into same-count block chords), which count equality would miss.
+        changed = simplified_events.get(number, ()) != source_events.get(number, ())
         per_measure.append(
             {
                 "number": number,
@@ -259,6 +265,36 @@ def _lh_note_counts_by_measure(score: Any) -> dict[int, int]:
                 count += 1
         counts[int(measure.number)] = count
     return counts
+
+
+def _lh_note_events_by_measure(score: Any) -> dict[int, tuple[tuple[float, float, tuple[int, ...]], ...]]:
+    """
+    Per-measure signature of the LH's sounding content: for each note/chord,
+    ``(offset, duration, sorted MIDI pitches)``.
+
+    Used instead of a raw note count to detect whether a measure's LH actually
+    changed: a reduction can rearrange notes into the same total count (e.g. an
+    eighth-note figure collapsed into same-count block chords), which count
+    equality alone would miss.
+    """
+    from music21 import chord as m21chord
+    from music21 import stream as m21stream
+
+    if not getattr(score, "parts", None):
+        return {}
+    left_hand = score.parts[-1]
+    events_by_measure: dict[int, tuple[tuple[float, float, tuple[int, ...]], ...]] = {}
+    for measure in left_hand.getElementsByClass(m21stream.Measure):
+        events: list[tuple[float, float, tuple[int, ...]]] = []
+        for element in measure.flatten().notes:
+            pitches = (
+                tuple(sorted(p.midi for p in element.pitches))
+                if isinstance(element, m21chord.Chord)
+                else (element.pitch.midi,)
+            )
+            events.append((round(float(element.offset), 3), round(float(element.duration.quarterLength), 3), pitches))
+        events_by_measure[int(measure.number)] = tuple(events)
+    return events_by_measure
 
 
 def _source_textures_by_measure(spans: list[Any]) -> dict[int, str]:

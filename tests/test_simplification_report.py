@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from music21 import chord
 from music21 import note
 from music21 import stream
 
@@ -162,6 +163,81 @@ class BuildReportFromScoreTests(unittest.TestCase):
         self.assertEqual(report["measuresChanged"], 0)
         # Preserving a measure the analysis recommended simplifying is an override.
         self.assertEqual(report["recommendationsOverridden"], 1)
+
+
+def _write_score(directory: Path, filename: str, lh_builder) -> Path:
+    """Write a 2-part, 1-measure score whose LH measure is filled by ``lh_builder``."""
+    score = stream.Score()
+    rh = stream.Part()
+    lh = stream.Part()
+
+    rh_measure = stream.Measure(number=1)
+    rh_measure.insert(0, note.Note("C5", quarterLength=4.0))
+    rh.append(rh_measure)
+
+    lh_measure = stream.Measure(number=1)
+    lh_builder(lh_measure)
+    lh.append(lh_measure)
+
+    score.append(rh)
+    score.append(lh)
+
+    path = directory / filename
+    score.write("musicxml", fp=str(path))
+    return path
+
+
+def _alberti_style_measure(measure):
+    """Eight eighth notes, 2 pitch classes/beat -> 8 sounding notes total."""
+    for i, name in enumerate(["C2", "G2", "E2", "G2", "C2", "G2", "E2", "G2"]):
+        measure.insert(i * 0.5, note.Note(name, quarterLength=0.5))
+
+
+def _same_count_block_measure(measure):
+    """Four 2-note block chords -> 8 sounding notes total, same as the Alberti source."""
+    for i, pitches in enumerate([("C2", "G2"), ("C2", "E2"), ("C2", "G2"), ("C2", "E2")]):
+        measure.insert(i * 1.0, chord.Chord(list(pitches), quarterLength=1.0))
+
+
+class BuildMusic21ReportTests(unittest.TestCase):
+    def test_same_note_count_reduction_is_still_marked_changed(self):
+        # A reduction can rearrange notes into the same total count (e.g. an
+        # Alberti figure collapsed into same-count block chords). Note-count
+        # equality alone would misreport this as "preserve"; the report must
+        # compare actual content instead.
+        with tempfile.TemporaryDirectory() as tmp:
+            source_path = _write_score(Path(tmp), "source.musicxml", _alberti_style_measure)
+            simplified_path = _write_score(Path(tmp), "simplified.musicxml", _same_count_block_measure)
+
+            report = simplification_report.build_music21_report(source_path, simplified_path)
+
+        entry = report["perMeasure"][0]
+        self.assertEqual(entry["sourceNoteCount"], entry["planNoteCount"])
+        self.assertTrue(entry["changed"])
+        self.assertEqual(report["measuresChanged"], 1)
+
+    def test_identical_measure_is_marked_preserved(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source_path = _write_score(Path(tmp), "source.musicxml", _alberti_style_measure)
+            identical_path = _write_score(Path(tmp), "identical.musicxml", _alberti_style_measure)
+
+            report = simplification_report.build_music21_report(source_path, identical_path)
+
+        self.assertFalse(report["perMeasure"][0]["changed"])
+        self.assertEqual(report["measuresChanged"], 0)
+
+
+class WriteAndLoadReportTests(unittest.TestCase):
+    def test_write_report_round_trips_through_load_report(self):
+        report = simplification_report.summarize_measures([_measure(1, True, "block", 8, 3)])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            written_path = simplification_report.write_report(report, tmp, "song")
+
+            self.assertEqual(written_path.name, "song_simplification_report.json")
+            self.assertEqual(simplification_report.load_report(written_path), report)
+            # A directory is also accepted; it should find the same file.
+            self.assertEqual(simplification_report.load_report(tmp), report)
 
 
 if __name__ == "__main__":

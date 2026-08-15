@@ -127,7 +127,7 @@ def generate_simplified_musicxml(
         # Make "nearly unmodified" output visible (issue #47): quantify how much
         # actually changed and warn loudly when a run barely touched the source.
         report = simplification_report.build_simplification_report(musicxml_path, plan)
-        _write_data_to_file_and_log(report, out_dir, p.stem, "simplification_report", "json")
+        simplification_report.write_report(report, out_dir, p.stem)
         if report["unmodifiedFlag"]:
             logger.warning("⚠️ Nearly unmodified output: %s", simplification_report.summary_line(report))
         else:

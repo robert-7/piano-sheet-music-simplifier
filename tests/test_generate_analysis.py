@@ -50,6 +50,38 @@ def _simple_block_measure(measure):
     measure.insert(0, chord.Chord(["C2", "G2"], quarterLength=4.0))
 
 
+def _two_hand_two_measure_score(lh_builder_first, lh_builder_second):
+    """Build a 2-part, 2-measure score with distinct LH content per measure."""
+    score = stream.Score()
+    rh = stream.Part()
+    lh = stream.Part()
+
+    for number, lh_builder in ((1, lh_builder_first), (2, lh_builder_second)):
+        rh_measure = stream.Measure(number=number)
+        rh_measure.insert(0, note.Note("C5", quarterLength=4.0))
+        rh.append(rh_measure)
+
+        lh_measure = stream.Measure(number=number)
+        lh_builder(lh_measure)
+        lh.append(lh_measure)
+
+    score.append(rh)
+    score.append(lh)
+    return score
+
+
+def _wide_span_busy_measure(measure):
+    """Busy sixteenth notes spanning C2..G4 (31 semitones) -- genuinely wide."""
+    for i, name in enumerate(["C2", "G2", "C3", "E3", "G3", "C4", "E4", "G4"]):
+        measure.insert(i * 0.25, note.Note(name, quarterLength=0.25))
+
+
+def _narrow_span_busy_measure(measure):
+    """Busy sixteenth notes spanning C4..E4 (4 semitones) -- comfortable."""
+    for i, name in enumerate(["C4", "D4", "E4", "D4", "C4", "D4", "E4", "D4"]):
+        measure.insert(i * 0.25, note.Note(name, quarterLength=0.25))
+
+
 class ExtractHarmoniesTests(unittest.TestCase):
     def test_roman_numeral_is_populated_for_tonic_triad(self):
         # A C-major triad in C major must be analyzed as the tonic (I).
@@ -97,6 +129,18 @@ class PrescriptiveAnalysisTests(unittest.TestCase):
         # build_analysis_bundle wires prescriptiveLH into the JSON bundle.
         recommendations = gena.build_prescriptive_analysis(_two_hand_score(_busy_broken_arpeggio_measure))
         self.assertTrue(all(r.authority == "recommend" for r in recommendations))
+
+    def test_wide_span_reason_is_scoped_to_the_measure_not_the_whole_piece(self):
+        # Measure 1 genuinely spans a wide (>tenth) range; measure 2 is narrow
+        # and comfortable. Only measure 1's reason should call out a wide span --
+        # it must not leak from measure 1's range into measure 2's recommendation.
+        score = _two_hand_two_measure_score(_wide_span_busy_measure, _narrow_span_busy_measure)
+
+        recommendations = gena.build_prescriptive_analysis(score)
+
+        by_number = {r.number: r for r in recommendations}
+        self.assertIn("wide LH span", by_number[1].reason)
+        self.assertNotIn("wide LH span", by_number[2].reason)
 
 
 if __name__ == "__main__":

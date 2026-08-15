@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -210,9 +209,7 @@ def generate_simplified_musicxml_using_music21(musicxml_path: str, out_dir: str 
     # (issue #47). Never let a reporting failure break the actual output.
     try:
         report = simplification_report.build_music21_report(musicxml_path, out_path)
-        report_path = Path(out_dir) / f"{basename}{simplification_report.REPORT_FILENAME_SUFFIX}"
-        with open(report_path, "w", encoding="utf-8") as f:
-            json.dump(report, f, ensure_ascii=False, indent=2)
+        simplification_report.write_report(report, out_dir, basename)
         logger.info("Simplification report: %s", simplification_report.summary_line(report))
     except Exception:
         logger.exception("Failed to build simplification report for music21 output.")

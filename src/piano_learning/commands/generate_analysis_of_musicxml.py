@@ -854,16 +854,22 @@ def _tempo_at(measure_number: int, tempi: list[TempoSpan]) -> float:
     return current
 
 
-def _lh_span_semitones(ranges: Ranges) -> int | None:
-    """Left-hand pitch span in semitones from the range block, or None if unknown."""
-    low = ranges.LH.get("min", "")
-    high = ranges.LH.get("max", "")
-    if not low or not high:
-        return None
-    try:
-        return abs(pitch.Pitch(high).midi - pitch.Pitch(low).midi)
-    except Exception:
-        return None
+def _lh_span_semitones_by_measure(s: stream.Score) -> dict[int, int]:
+    """Left-hand pitch span (semitones) per measure, for measures with >=1 note."""
+    if len(s.parts) < 2:
+        return {}
+    lh = s.parts[-1]
+    spans: dict[int, int] = {}
+    for m in lh.getElementsByClass(stream.Measure):
+        midis: list[int] = []
+        for el in m.flatten().getElementsByClass([note.Note, chord.Chord]):
+            if isinstance(el, chord.Chord):
+                midis.extend(p.midi for p in el.pitches)
+            else:
+                midis.append(el.pitch.midi)
+        if midis:
+            spans[int(m.number)] = max(midis) - min(midis)
+    return spans
 
 
 def build_prescriptive_analysis(
@@ -871,7 +877,6 @@ def build_prescriptive_analysis(
     *,
     texture_spans: list[TextureSpan] | None = None,
     metadata: Metadata | None = None,
-    ranges: Ranges | None = None,
 ) -> list[PrescriptiveMeasure]:
     """
     Recommend, per measure, whether the LH should be simplified and to what texture.
@@ -887,10 +892,7 @@ def build_prescriptive_analysis(
         # No LH texture (e.g. single-part score); nothing to recommend.
         return []
     metadata = metadata if metadata is not None else extract_metadata(s)
-    ranges = ranges if ranges is not None else extract_ranges(s)
-
-    span_semitones = _lh_span_semitones(ranges)
-    wide_span = span_semitones is not None and span_semitones > WIDE_SPAN_SEMITONES
+    span_semitones_by_measure = _lh_span_semitones_by_measure(s)
 
     recommendations: list[PrescriptiveMeasure] = []
     for span in texture_spans:
@@ -899,6 +901,7 @@ def build_prescriptive_analysis(
             tempo_qpm = _tempo_at(number, metadata.tempi)
             unit = span.smallestUnit
             busy = unit in BUSY_SMALLEST_UNITS
+            wide_span = span_semitones_by_measure.get(number, 0) > WIDE_SPAN_SEMITONES
             tempo_clause = " under a fast tempo" if tempo_qpm >= FAST_TEMPO_QPM else ""
             span_clause = "; wide LH span" if wide_span else ""
 
@@ -963,7 +966,6 @@ def build_analysis_bundle(path: str) -> dict[str, Any]:
         s,
         texture_spans=left_hand_texture,
         metadata=metadata,
-        ranges=ranges,
     )
 
     bundle = {
