@@ -27,6 +27,10 @@ flowchart LR
     P -. plan LH .-> R
     D -. simplified LH .-> R
 
+    %% Observability: per-run index of what was sent, returned, and written
+    D -. run characteristics + outcome .-> S[Run Summary JSON]
+    R -. highlights .-> S
+
     %% Render to PDF
     D -- convert_musicxml_to_pdf --> E[Simplified PDF]
 
@@ -37,6 +41,7 @@ flowchart LR
         P --> O1
         D --> O1
         R --> O1
+        S --> O1
     end
 
     %% External tools (behind the commands)
@@ -65,13 +70,23 @@ the model followed vs. overrode. An `unmodifiedFlag` is logged as a warning when
 nearly unchanged. The `compare_runs` sub-command diffs two runs' reports so regressions in
 simplification strength are visible run over run.
 
+## Observability artifacts
+
+Each run also leaves a standardized, flat set of debugging artifacts and a single
+`run_summary.json` indexing what was sent to the model, what came back, what failed validation,
+and what was finally written. The OpenAI path additionally saves prompt inputs, the raw model
+output and reasoning (written *before* validation, so a failed run is still inspectable), and a
+`validation_report.json`. Naming and layout are owned by
+[`src/piano_learning/utils/run_artifacts.py`](../src/piano_learning/utils/run_artifacts.py) and
+documented in full in [DEBUGGING.md](DEBUGGING.md).
+
 Optional: validate or render this diagram locally
 
-* Validate syntax in pre-commit: the repo includes a hook that checks the Mermaid block using [scripts/diagram.sh](scripts/diagram.sh).
+* Validate syntax in pre-commit: the repo includes a hook that checks the Mermaid block using [scripts/diagram.sh](../scripts/diagram.sh).
 * Render an SVG for docs/slides
 
 Try it:
 
 ```shell
-docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/data -w /data minlag/mermaid-cli:11.10.1 -i ARCHITECTURE.md -o docs/architecture.svg
+docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/data -w /data minlag/mermaid-cli:11.10.1 -i docs/ARCHITECTURE.md -o docs/architecture.svg
 ```

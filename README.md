@@ -2,11 +2,11 @@
 
 ## Getting Set Up
 
-Please reference [SETUP.md](SETUP.md) for setup steps.
+Please reference [docs/SETUP.md](docs/SETUP.md) for setup steps.
 
 ## Architecture
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the end-to-end pipeline diagram and rendering instructions.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the end-to-end pipeline diagram and rendering instructions.
 
 ## How to Generate a Simplified Sheet
 
@@ -106,6 +106,6 @@ OpenAI-specific notes:
 * The default OpenAI execution path is the Responses API in background mode.
 * `--use-agent` is supported as an experimental path for isolated validation only.
 * `--manual` renders the plan-generation prompts without calling the API, which is useful when you want to inspect the exact prompt payload independently of local code.
-* The OpenAI path saves debug artifacts for the compact analysis, schema, model output, validated plan, and generated MusicXML under the selected output directory.
+* Every run leaves a standardized set of debugging artifacts (prompt inputs, raw model output and reasoning, validation report, validated plan, and generated MusicXML) plus a `run_summary.json` indexing the whole run. See [docs/DEBUGGING.md](docs/DEBUGGING.md) for the full artifact map.
 
 Run `python main.py generate_simplified_musicxml --simplifier openai --manual user/input/Difficult_Sheet_Music.xml` to generate the prompt files.
