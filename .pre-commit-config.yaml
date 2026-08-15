@@ -64,7 +64,7 @@ repos:
         name: Validate Mermaid diagram in ARCHITECTURE
         entry: bash scripts/diagram.sh --check
         language: system
-        files: ARCHITECTURE.md
+        files: ^docs/ARCHITECTURE\.md$
 
       # Type-check touched source files with pyright (standard mode, config in
       # pyrightconfig.json). Uses an isolated env (language: python) with the

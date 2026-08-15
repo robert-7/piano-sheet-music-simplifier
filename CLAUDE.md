@@ -60,13 +60,13 @@ Individual pipeline stages are separate sub-commands (`convert_pdf_to_musicxml`,
 ## Architecture
 
 Before structural changes -- adding sub-commands, touching pipeline stages, changing backend
-selection, or modifying external-tool invocations -- read `ARCHITECTURE.md` first; it is the
+selection, or modifying external-tool invocations -- read `docs/ARCHITECTURE.md` first; it is the
 authoritative source. Keep its Mermaid diagram in sync (the `scripts/diagram.sh` hook catches
 drift).
 
 `main.py` is a thin argparse dispatcher; each sub-command lives in
 `src/piano_learning/commands/` and shared logic in `src/piano_learning/utils/`. The pipeline (see
-`ARCHITECTURE.md` for the diagram) is:
+`docs/ARCHITECTURE.md` for the diagram) is:
 
 ```plaintext
 PDF --(Audiveris)--> MusicXML --> analysis JSON --> LH simplification-plan JSON
@@ -120,6 +120,13 @@ when a run barely touched the source; `compare_runs` diffs two reports. See
 Note `prescriptiveLH` is the one analysis field the model is told to **follow by default**; the
 system prompt otherwise tells it to ignore prescriptive fields.
 
+## Observability artifacts (issue #72)
+
+`run_artifacts.py` owns run artifact names/layout and the per-run `run_summary.json`: add
+artifacts by registering a role in `ARTIFACT_SPECS`, never by spelling filenames inline, and don't
+rename the load-bearing names consumed by `run_e2e.sh` / `compare_runs`. Full map:
+`docs/DEBUGGING.md`.
+
 ## External tools
 
 Invoked via shell; must be on `PATH` (resolved with `shutil.which`):
@@ -130,7 +137,7 @@ Invoked via shell; must be on `PATH` (resolved with `shutil.which`):
 
 The Docker image (`Dockerfile` / `docker-compose.yml`) bundles MuseScore + LilyPond with a headless
 Qt env, so rendering works out of the box (`docker compose run --rm piano-learning python3 main.py
-...`). See `SETUP.md` for local install steps.
+...`). See `docs/SETUP.md` for local install steps.
 
 ## Config
 

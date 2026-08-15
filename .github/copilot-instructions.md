@@ -18,7 +18,7 @@
 * Pre-commit for linting:
     * `pre-commit install`
     * `pre-commit run --all-files`
-* External tools required for end-to-end workflows (see `SETUP.md` for commands):
+* External tools required for end-to-end workflows (see `docs/SETUP.md` for commands):
     * OpenJDK 17
     * Audiveris 5.7.1 (PDF → MusicXML)
     * LilyPond (Music engraving)
@@ -26,11 +26,11 @@
 * Environment variables:
     * Copy `.env.template` to `.env` and set `OPENAI_API_KEY`
 
-See `SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and verification).
+See `docs/SETUP.md` for step-by-step install commands (apt, snap, Audiveris .deb, and verification).
 
 ## Quickstart
 
-* Prepare environment (venv + dependencies) and install external tools per `SETUP.md`.
+* Prepare environment (venv + dependencies) and install external tools per `docs/SETUP.md`.
 * Place inputs in `user/input/`.
 * Discover available sub-commands and options:
     * `python main.py -h`
@@ -75,7 +75,7 @@ Inputs are never modified; outputs go to the directory specified by the global `
 ## Integration Points
 
 * External tools invoked via shell commands; ensure they are on PATH.
-* Quick checks (see `SETUP.md` for full details):
+* Quick checks (see `docs/SETUP.md` for full details):
     * `audiveris -version`
     * `lilypond --version`
     * `snap list musescore` (if installed via snap)
@@ -101,7 +101,7 @@ Inputs are never modified; outputs go to the directory specified by the global `
 
 ## Troubleshooting & References
 
-* See `README.md` for the end-to-end workflow, and `SETUP.md` for installation commands.
+* See `README.md` for the end-to-end workflow, and `docs/SETUP.md` for installation commands.
 * OpenAI debugging: [OpenAI's Observability](https://platform.openai.com/logs)
 * Prompt references:
     * System: `src/piano_learning/resources/system_instructions_for_chatgpt.j2`

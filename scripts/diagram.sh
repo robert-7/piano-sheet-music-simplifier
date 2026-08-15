@@ -7,8 +7,8 @@ set -euo pipefail
 # - --render: renders docs/architecture.svg via mermaid-cli (mmdc) if available
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
-README="$ROOT_DIR/ARCHITECTURE.md"
 OUT_DIR="$ROOT_DIR/docs"
+README="$OUT_DIR/ARCHITECTURE.md"
 TMP_MMD="$OUT_DIR/architecture.mmd"
 OUT_SVG="$OUT_DIR/architecture.svg"
 

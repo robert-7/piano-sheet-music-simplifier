@@ -215,5 +215,6 @@ user/output/*
 !user/input/.gitkeep
 !user/output/.gitkeep
 
-# generated docs
-docs
+# generated docs (mermaid outputs rendered from ARCHITECTURE.md by scripts/diagram.sh)
+docs/architecture.mmd
+docs/architecture.svg

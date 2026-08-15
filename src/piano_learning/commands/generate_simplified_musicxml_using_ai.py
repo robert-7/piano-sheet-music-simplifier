@@ -8,25 +8,13 @@ import httpx
 from src.piano_learning.commands import generate_analysis_of_musicxml
 from src.piano_learning.utils import musicxml_rewriter
 from src.piano_learning.utils import openai_utils
+from src.piano_learning.utils import run_artifacts
 from src.piano_learning.utils import simplification_plan
 from src.piano_learning.utils import simplification_report
 from src.piano_learning.utils import template_utils
 
 logger = logging.getLogger(__name__)
 
-def _write_data_to_file_and_log(data_to_write: object, out_dir: Path, basename_prefix: str, basename_suffix: str, extension: str) -> Path:
-    """
-    Writes data to a file in out_dir with a name based on prefix and suffix.
-    """
-    # Save the data to a file for debugging
-    path = out_dir / f"{basename_prefix}_{basename_suffix}.{extension}"
-    with open(path, "w", encoding="utf-8") as f:
-        if isinstance(data_to_write, (dict, list)):
-            f.write(json.dumps(data_to_write, ensure_ascii=False, indent=2))
-        else:
-            f.write(openai_utils.coerce_to_text(data_to_write))
-    logger.info(f"✅ {basename_suffix} saved to: {path}")
-    return path
 
 def generate_simplified_musicxml(
     musicxml_path: str,
@@ -35,9 +23,57 @@ def generate_simplified_musicxml(
 ) -> Path:
     """
     Generates a simplified MusicXML file from an OpenAI-produced LH plan.
+
+    Every run leaves a standardized artifact trail (see ``run_artifacts`` and
+    ``docs/debugging-artifacts.md``): prompt inputs, the raw model output and
+    reasoning (written *before* validation so a failed run is still inspectable),
+    a validation report, the structured plan, the final MusicXML, a simplification
+    report, and a ``run_summary.json`` written on both success and failure.
     """
+    p = Path(musicxml_path)
+    stem = p.stem
+
+    # Request characteristics -- captured once so we can both log them and record
+    # them in the run summary (issue #72).
+    mode = "agent" if use_agent else "responses_background"
+    model = openai_utils.OPENAI_AGENT_MODEL if use_agent else openai_utils.OPENAI_MODEL
+    request_settings: dict[str, object] = {"timeoutSeconds": 900}
+    if not use_agent:
+        request_settings.update(
+            {
+                "maxOutputTokens": 24000,
+                "reasoningEffort": "medium",
+                "reasoningSummary": "detailed",
+            }
+        )
+    logger.info(
+        "OpenAI simplification request: mode=%s, model=%s, settings=%s",
+        mode,
+        model,
+        request_settings,
+    )
+
+    # The full set of artifacts this backend can produce, in run order. The run
+    # summary reports which of these actually made it to disk.
+    artifact_roles = [
+        "prompt_system",
+        "prompt_user",
+        "prompt_compact_analysis",
+        "prompt_plan_schema",
+        "model_output_raw",
+        "model_reasoning",
+        "validation_report",
+        "plan",
+        "simplified_musicxml",
+        "simplification_report",
+    ]
+
+    outcome = "failed"
+    error_message: str | None = None
+    validation_state: dict[str, object] | None = None
+    report_highlights: dict[str, object] | None = None
+
     try:
-        # Save the simplified MusicXML to a new file
         if not out_dir.exists():
             raise FileNotFoundError(f"Output directory does not exist: {out_dir}")
         if not out_dir.is_dir():
@@ -55,13 +91,11 @@ def generate_simplified_musicxml(
         plan_schema_json = json.dumps(plan_schema, ensure_ascii=False, separators=(',', ':'))
 
         # Prepare templated prompts
-        p = Path(musicxml_path)
-        basename = p.stem
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         resources_dir = Path(__file__).resolve().parents[1] / "resources"
         system_tpl = resources_dir / "system_instructions_for_chatgpt.j2"
         user_tpl = resources_dir / "user_prompt_for_chatgpt.j2"
-        context = {"BASENAME": basename, "TIMESTAMP": timestamp}
+        context = {"BASENAME": stem, "TIMESTAMP": timestamp}
         system_prompt = template_utils.render_template_file(system_tpl, context)
         user_prompt = template_utils.render_template_file(user_tpl, context)
 
@@ -78,11 +112,11 @@ def generate_simplified_musicxml(
             "```\n\n"
             "Do not emit MusicXML. Do not include prose outside the JSON object.\n"
         )
-        # write the prompts to a file for debugging
-        _write_data_to_file_and_log(compact_analysis, out_dir, p.stem, "compact_analysis_for_plan", "json")
-        _write_data_to_file_and_log(plan_schema, out_dir, p.stem, "simplification_plan_schema", "json")
-        _write_data_to_file_and_log(system_prompt, out_dir, p.stem, "simplified_system_prompt", "txt")
-        _write_data_to_file_and_log(query, out_dir, p.stem, "simplified_user_prompt", "txt")
+        # Persist prompt inputs (what was sent) before the API call.
+        run_artifacts.write_artifact(out_dir, stem, "prompt_compact_analysis", compact_analysis)
+        run_artifacts.write_artifact(out_dir, stem, "prompt_plan_schema", plan_schema)
+        run_artifacts.write_artifact(out_dir, stem, "prompt_system", system_prompt)
+        run_artifacts.write_artifact(out_dir, stem, "prompt_user", query)
 
         if use_agent:
             output_text, reasoning = openai_utils.run_openai_response_with_agent(
@@ -105,43 +139,80 @@ def generate_simplified_musicxml(
                 reasoning_summary="detailed",
             )
 
+        # Persist what came back *before* validating it. Previously these were
+        # written only after a successful validate_plan, so a parse/validation
+        # failure lost exactly the output needed to debug it (issue #72).
         output_text = (output_text or "").strip()
-        raw_plan = simplification_plan.extract_plan_json(output_text)
-        plan = simplification_plan.validate_plan(
-            raw_plan,
-            source_measure_numbers=source_measure_numbers,
-            require_all_measures=True,
-        )
-        musicxml_output_path = out_dir / f"{p.stem}_simplified.musicxml"
+        run_artifacts.write_artifact(out_dir, stem, "model_output_raw", output_text)
+        run_artifacts.write_artifact(out_dir, stem, "model_reasoning", reasoning)
+
+        # Extract + validate, recording the outcome as a validation report either way.
+        try:
+            raw_plan = simplification_plan.extract_plan_json(output_text)
+            plan = simplification_plan.validate_plan(
+                raw_plan,
+                source_measure_numbers=source_measure_numbers,
+                require_all_measures=True,
+            )
+        except Exception as validation_exc:
+            validation_state = {"status": "failed", "error": f"{type(validation_exc).__name__}: {validation_exc}"}
+            run_artifacts.write_artifact(out_dir, stem, "validation_report", validation_state)
+            raise
+        validation_state = {"status": "passed", "error": None}
+        run_artifacts.write_artifact(out_dir, stem, "validation_report", validation_state)
+        run_artifacts.write_artifact(out_dir, stem, "plan", plan)
+
+        musicxml_output_path = run_artifacts.artifact_path(out_dir, stem, "simplified_musicxml")
         musicxml_rewriter.write_simplified_musicxml_from_plan(
             musicxml_path,
             plan,
             musicxml_output_path,
         )
 
-        # Save the all data to files for debugging
-        _write_data_to_file_and_log(reasoning, out_dir, p.stem, "simplified_reasoning", "txt")
-        _write_data_to_file_and_log(output_text, out_dir, p.stem, "simplification_plan_full_output", "txt")
-        _write_data_to_file_and_log(plan, out_dir, p.stem, "simplification_plan", "json")
-
         # Make "nearly unmodified" output visible (issue #47): quantify how much
         # actually changed and warn loudly when a run barely touched the source.
         report = simplification_report.build_simplification_report(musicxml_path, plan)
-        simplification_report.write_report(report, out_dir, p.stem)
+        simplification_report.write_report(report, out_dir, stem)
+        report_highlights = run_artifacts.report_highlights_from_report(report)
         if report["unmodifiedFlag"]:
             logger.warning("⚠️ Nearly unmodified output: %s", simplification_report.summary_line(report))
         else:
             logger.info("Simplification report: %s", simplification_report.summary_line(report))
 
+        outcome = "success"
         return musicxml_output_path
 
-    except Exception:
+    except Exception as exc:
         # Do not swallow failures into a silent None: a validation/parse/API
         # error is indistinguishable from "the model returned an unmodified
         # plan" if it disappears here. Log the full traceback for context and
         # re-raise so the caller (and the CLI process) fails loudly.
+        error_message = f"{type(exc).__name__}: {exc}"
         logger.exception("Failed to generate simplified MusicXML from OpenAI plan.")
         raise
+    finally:
+        # Always leave a run summary -- especially on failure, where it is the
+        # index to what was sent, what came back, and what failed validation.
+        try:
+            summary = run_artifacts.build_run_summary(
+                input_source="musicxml",
+                input_path=str(musicxml_path),
+                stem=stem,
+                simplifier="openai",
+                outcome=outcome,
+                out_dir=out_dir,
+                mode=mode,
+                model=model,
+                request=request_settings,
+                validation=validation_state,
+                report_highlights=report_highlights,
+                error=error_message,
+                artifact_roles=artifact_roles,
+            )
+            run_artifacts.write_run_summary(out_dir, summary)
+        except Exception:
+            logger.exception("Failed to write run summary.")
+
 
 def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str, out_dir: Path) -> None:
     """
@@ -166,6 +237,8 @@ def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str, out_dir
     if not out_dir.is_dir():
         raise NotADirectoryError(f"Output path is not a directory: {out_dir}")
 
+    logger.info("OpenAI simplification request: mode=manual (prompt rendering only, no API call)")
+
     out_path = out_dir / f"{base_file_name}_{timestamp}_simplification_prompts.txt"
     content = (
         f"{system_prompt}\n\n"
@@ -184,3 +257,18 @@ def generate_chatgpt_prompts_for_simplified_musicxml(musicxml_path: str, out_dir
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(content)
     logger.info(f"✅ Prompts written to: {out_path}")
+
+    # A run summary so the manual path is documented alongside the others. The
+    # combined prompts file is not part of the standardized artifact map, so it
+    # is not listed under artifacts here.
+    summary = run_artifacts.build_run_summary(
+        input_source="musicxml",
+        input_path=str(musicxml_path),
+        stem=base_file_name,
+        simplifier="openai",
+        outcome="success",
+        out_dir=out_dir,
+        mode="manual",
+        artifact_roles=[],
+    )
+    run_artifacts.write_run_summary(out_dir, summary)

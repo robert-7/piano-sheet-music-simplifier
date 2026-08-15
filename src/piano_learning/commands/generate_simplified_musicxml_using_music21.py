@@ -13,6 +13,7 @@ from music21 import meter
 from music21 import note
 from music21 import stream
 
+from src.piano_learning.utils import run_artifacts
 from src.piano_learning.utils import score_utils
 from src.piano_learning.utils import simplification_report
 
@@ -192,26 +193,55 @@ def reduce_left_hand_in_score_to_chords(
 def generate_simplified_musicxml_using_music21(musicxml_path: str, out_dir: str = ".") -> str | None:
     """
     Parse MusicXML, simplify the left hand to block chords, and write a new MusicXML.
+
+    Leaves the same standardized run trail as the OpenAI backend where it applies:
+    the simplified MusicXML, a simplification report, and a ``run_summary.json``
+    (see ``run_artifacts`` and ``docs/debugging-artifacts.md``). This backend is
+    fully local, so there are no prompt/model/plan artifacts.
     """
+    window = "beat"
+    # Log the request characteristics for parity with the OpenAI path (issue #72).
+    logger.info("music21 simplification request: mode=local, window=%s", window)
+
     s = score_utils.load_score(musicxml_path)
 
     # Reduce LH to block chords
-    s_reduced = reduce_left_hand_in_score_to_chords(s, window="beat")
+    s_reduced = reduce_left_hand_in_score_to_chords(s, window=window)
 
     # Ensure output dir exists and write simplified MusicXML
     basename = Path(musicxml_path).stem
     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    out_path = Path(out_dir) / f"{basename}_simplified.musicxml"
+    out_path = run_artifacts.artifact_path(out_dir, basename, "simplified_musicxml")
     s_reduced.write("musicxml", fp=str(out_path))
     logger.info(f"Wrote simplified MusicXML to {out_path} using music21.")
 
     # Emit a simplification report so this path is comparable to the OpenAI path
     # (issue #47). Never let a reporting failure break the actual output.
+    report_highlights = None
     try:
         report = simplification_report.build_music21_report(musicxml_path, out_path)
         simplification_report.write_report(report, out_dir, basename)
+        report_highlights = run_artifacts.report_highlights_from_report(report)
         logger.info("Simplification report: %s", simplification_report.summary_line(report))
     except Exception:
         logger.exception("Failed to build simplification report for music21 output.")
+
+    # Always leave a run summary so every run directory is self-describing.
+    try:
+        summary = run_artifacts.build_run_summary(
+            input_source="musicxml",
+            input_path=str(musicxml_path),
+            stem=basename,
+            simplifier="music21",
+            outcome="success",
+            out_dir=out_dir,
+            mode="local",
+            request={"window": window},
+            report_highlights=report_highlights,
+            artifact_roles=["simplified_musicxml", "simplification_report"],
+        )
+        run_artifacts.write_run_summary(out_dir, summary)
+    except Exception:
+        logger.exception("Failed to write run summary for music21 output.")
 
     return str(out_path)
