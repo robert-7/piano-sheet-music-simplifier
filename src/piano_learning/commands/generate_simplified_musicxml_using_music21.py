@@ -14,6 +14,7 @@ from music21 import note
 from music21 import stream
 
 from src.piano_learning.utils import score_utils
+from src.piano_learning.utils import simplification_report
 
 logger = logging.getLogger(__name__)
 
@@ -203,4 +204,14 @@ def generate_simplified_musicxml_using_music21(musicxml_path: str, out_dir: str 
     out_path = Path(out_dir) / f"{basename}_simplified.musicxml"
     s_reduced.write("musicxml", fp=str(out_path))
     logger.info(f"Wrote simplified MusicXML to {out_path} using music21.")
+
+    # Emit a simplification report so this path is comparable to the OpenAI path
+    # (issue #47). Never let a reporting failure break the actual output.
+    try:
+        report = simplification_report.build_music21_report(musicxml_path, out_path)
+        simplification_report.write_report(report, out_dir, basename)
+        logger.info("Simplification report: %s", simplification_report.summary_line(report))
+    except Exception:
+        logger.exception("Failed to build simplification report for music21 output.")
+
     return str(out_path)

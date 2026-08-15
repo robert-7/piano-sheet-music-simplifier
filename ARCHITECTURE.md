@@ -19,8 +19,13 @@ flowchart LR
 
     %% Simplify MusicXML
     B -- generate_simplified_musicxml --> P[LH Simplification Plan JSON]
-    C -. compact analysis .- P
+    C -. "compact analysis + prescriptiveLH recommendations" .- P
     P -- deterministic rewrite --> D[Simplified MusicXML]
+
+    %% Instrumentation: compare source LH vs plan/simplified LH
+    B -. source LH .-> R[Simplification Report JSON]
+    P -. plan LH .-> R
+    D -. simplified LH .-> R
 
     %% Render to PDF
     D -- convert_musicxml_to_pdf --> E[Simplified PDF]
@@ -31,6 +36,7 @@ flowchart LR
         C --> O1
         P --> O1
         D --> O1
+        R --> O1
     end
 
     %% External tools (behind the commands)
@@ -48,6 +54,16 @@ flowchart LR
     D  -. uses .-> Y
     D  -. optional .-> Z
 ```
+
+## Instrumentation
+
+Every simplification run (both the OpenAI and music21 backends) also emits a
+`<stem>_simplification_report.json` alongside its other outputs. The report quantifies how much
+the left hand actually changed -- measures preserved vs. changed, `pctChanged`, a texture
+histogram, LH note-count delta, and (for the AI path) how many `prescriptiveLH` recommendations
+the model followed vs. overrode. An `unmodifiedFlag` is logged as a warning when a run comes back
+nearly unchanged. The `compare_runs` sub-command diffs two runs' reports so regressions in
+simplification strength are visible run over run.
 
 Optional: validate or render this diagram locally
 
