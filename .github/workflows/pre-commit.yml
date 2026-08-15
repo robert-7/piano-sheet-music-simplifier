@@ -52,3 +52,33 @@ jobs:
         uses: pre-commit/action@v3.0.1
         with:
           extra_args: --all-files
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt coverage==7.15.4
+
+      - name: Run unit tests under coverage
+        run: coverage run -m unittest discover -s tests
+
+      # Not gated on a threshold yet -- this establishes a baseline so we can
+      # track coverage over time before deciding where to set the bar.
+      - name: Report coverage
+        if: always()
+        run: |
+          {
+            echo '### Coverage report'
+            echo '```'
+            coverage report -m
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
