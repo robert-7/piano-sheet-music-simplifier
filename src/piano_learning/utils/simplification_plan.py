@@ -48,7 +48,7 @@ def get_plan_schema() -> dict[str, Any]:
             "rewrites MusicXML from it."
         ),
         "measureContract": {
-            "number": "1-based source measure number.",
+            "number": "Source measure number (1-based, or 0 for a pickup/anacrusis measure).",
             "texture": sorted(ALLOWED_TEXTURES),
             "events": [
                 {
@@ -202,7 +202,7 @@ def _validate_measure(measure: Any) -> dict[str, Any]:
         raise ValueError("Each measure plan entry must be a dictionary.")
 
     number = measure.get("number", measure.get("measure"))
-    if not isinstance(number, int) or number <= 0:
+    if not isinstance(number, int) or number < 0:
         raise ValueError(f"Invalid measure number: {number!r}.")
 
     texture = measure.get("texture")

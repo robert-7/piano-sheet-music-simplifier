@@ -157,7 +157,8 @@ def _measure_numbers_by_part(score: Any) -> list[list[int]]:
 def _measure_duration_ql(measure: Any, time_signature: Any | None) -> float:
     if time_signature is not None:
         try:
-            return float(time_signature.barDuration.quarterLength)
+            padding_left = float(getattr(measure, "paddingLeft", 0.0) or 0.0)
+            return float(time_signature.barDuration.quarterLength) - padding_left
         except Exception:
             pass
     highest_time = float(getattr(measure, "highestTime", 0.0) or 0.0)

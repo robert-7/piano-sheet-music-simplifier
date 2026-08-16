@@ -63,6 +63,34 @@ class SimplificationPlanTests(unittest.TestCase):
                 source_measure_numbers=[1],
             )
 
+    def test_validate_plan_accepts_pickup_measure_zero(self):
+        # Regression: pickup/anacrusis measures are conventionally numbered 0.
+        # The validator previously rejected any measure number <= 0, which made
+        # it impossible to ever produce a valid plan for a piece with a pickup.
+        plan = valid_plan()
+        plan["measures"].append(
+            {
+                "number": 0,
+                "texture": "singleBass",
+                "events": [{"offset": 0.0, "duration": 1.0, "pitches": ["C2"]}],
+            }
+        )
+
+        normalized = simplification_plan.validate_plan(
+            plan,
+            source_measure_numbers=[0, 1, 2],
+            measure_durations_by_number={0: 1.0, 1: 2.0, 2: 3.0},
+        )
+
+        self.assertEqual([measure["number"] for measure in normalized["measures"]], [0, 1, 2])
+
+    def test_validate_plan_rejects_negative_measure_number(self):
+        plan = valid_plan()
+        plan["measures"][0]["number"] = -1
+
+        with self.assertRaisesRegex(ValueError, "Invalid measure number"):
+            simplification_plan.validate_plan(plan)
+
     def test_validate_plan_rejects_short_lh_duration(self):
         plan = valid_plan()
         plan["measures"][0]["events"][0]["duration"] = 0.25
