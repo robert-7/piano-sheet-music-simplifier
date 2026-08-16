@@ -107,7 +107,9 @@ tests). See the `changing-the-plan-schema` skill for the full checklist before y
 Write tests for any non-trivial logic you add or change: if it can break silently, it should have a
 test. Good targets are validation logic, rewriter edge cases, report calculations, and new
 plan-schema rules. Keep tests in `tests/` using `unittest`, following `test_simplification_plan.py`
-as the style reference.
+as the style reference. Reuse a builder from `tests/fixtures.py` for the score under test where one
+fits; add a new one there if it's likely to be reused. See `docs/TESTING.md` for the full map of
+what's covered and why.
 
 ## Instrumentation (issue #47)
 
