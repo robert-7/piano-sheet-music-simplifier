@@ -142,9 +142,26 @@ def _parse_score(path: str | Path) -> Any:
 
 
 def _left_hand_part(score: Any) -> Any:
-    if not score.parts:
-        raise ValueError("Score does not contain any parts.")
-    return score.parts[-1]
+    parts = list(score.parts)
+    if len(parts) != 2:
+        raise ValueError(
+            "LH-only simplification requires a score with exactly 2 parts (RH staff + LH "
+            f"staff); found {len(parts)}."
+        )
+    first_clef = _part_clef(parts[0])
+    second_clef = _part_clef(parts[1])
+    clef_module = _clef()
+    if isinstance(first_clef, clef_module.BassClef) and isinstance(second_clef, clef_module.TrebleClef):
+        return parts[0]
+    if isinstance(second_clef, clef_module.BassClef) and isinstance(first_clef, clef_module.TrebleClef):
+        return parts[1]
+    # No unambiguous clef signal (e.g. neither part has a clef): fall back to the
+    # RH-then-LH ordering convention used throughout this pipeline's fixtures and inputs.
+    return parts[-1]
+
+
+def _part_clef(part: Any) -> Any:
+    return part.recurse().getElementsByClass(_clef().Clef).first()
 
 
 def _measure_numbers_by_part(score: Any) -> list[list[int]]:
@@ -224,6 +241,12 @@ def _chord() -> Any:
     from music21 import chord
 
     return chord
+
+
+def _clef() -> Any:
+    from music21 import clef
+
+    return clef
 
 
 def _duration() -> Any:
