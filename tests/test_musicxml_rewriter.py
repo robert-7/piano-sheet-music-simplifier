@@ -1,11 +1,54 @@
 import unittest
 
 from music21 import chord
+from music21 import clef
 from music21 import note
 from music21 import stream
 
 from src.piano_learning.utils import musicxml_rewriter
 from src.piano_learning.utils import simplification_plan
+
+
+class LeftHandPartSelectionTests(unittest.TestCase):
+    def test_raises_when_score_has_a_single_combined_part(self):
+        score = stream.Score()
+        combined = stream.Part()
+        combined.append(stream.Measure(number=1))
+        score.append(combined)
+
+        with self.assertRaises(ValueError):
+            musicxml_rewriter._left_hand_part(score)
+
+    def test_raises_when_score_has_more_than_two_parts(self):
+        score = stream.Score()
+        for _ in range(3):
+            part = stream.Part()
+            part.append(stream.Measure(number=1))
+            score.append(part)
+
+        with self.assertRaises(ValueError):
+            musicxml_rewriter._left_hand_part(score)
+
+    def test_selects_bass_clef_part_when_staff_order_is_reversed(self):
+        score = stream.Score()
+        lh_first = stream.Part()
+        lh_measure = stream.Measure(number=1)
+        lh_measure.clef = clef.BassClef()
+        lh_measure.insert(0, note.Note("C3"))
+        lh_first.append(lh_measure)
+
+        rh_second = stream.Part()
+        rh_measure = stream.Measure(number=1)
+        rh_measure.clef = clef.TrebleClef()
+        rh_measure.insert(0, note.Note("C5"))
+        rh_second.append(rh_measure)
+
+        score.append(lh_first)
+        score.append(rh_second)
+
+        selected = musicxml_rewriter._left_hand_part(score)
+
+        self.assertIs(selected, lh_first)
 
 
 class MusicXmlRewriterTests(unittest.TestCase):
