@@ -12,7 +12,7 @@ the naming here means:
 - every run can emit a single :data:`RUN_SUMMARY_FILENAME` describing what was
   sent, what came back, what failed validation, and what was finally written.
 
-See ``docs/debugging-artifacts.md`` for the human-facing artifact map.
+See ``docs/DEBUGGING.md`` for the human-facing artifact map.
 
 The functions here are deliberately pure/IO-light so the naming and summary logic
 can be unit-tested without music21 or the OpenAI SDK.

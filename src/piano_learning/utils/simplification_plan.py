@@ -109,7 +109,13 @@ def compact_analysis_for_plan(
 
 def extract_plan_json(output_text: str) -> dict[str, Any]:
     """
-    Extract a plan JSON object from model output.
+    Extract the plan JSON object from raw model output.
+
+    Models often wrap JSON in prose or a ```json fence, so extraction falls back
+    progressively: prefer a fenced code block, else parse the whole response, else
+    raw-decode from the first ``{`` (tolerating trailing prose). Output that looks
+    truncated is rejected up front (see :func:`_reject_truncation_markers`) rather
+    than parsed into a silently incomplete plan.
     """
     if not output_text.strip():
         raise ValueError("Model response is empty; expected a simplification-plan JSON object.")
@@ -144,7 +150,28 @@ def validate_plan(
     require_full_measure_coverage: bool = True,
 ) -> dict[str, Any]:
     """
-    Validate and normalize a left-hand simplification plan.
+    Validate a left-hand simplification plan and return a normalized copy.
+
+    This is the gate that keeps a malformed or lossy model plan from ever
+    reaching the rewriter. The normalized copy has its ``measures`` sorted by
+    number and their events sorted by offset. A plan is rejected when:
+
+    - ``schemaVersion`` or ``scope`` do not match the pinned contract;
+    - ``measures`` is missing, not a list, or empty;
+    - two entries claim the same measure number;
+    - any measure fails :func:`_validate_measure` (bad number, unsupported
+      texture, or events inconsistent with the texture) or any event fails
+      :func:`_validate_event` (sub-eighth duration, >3 pitches, rest-with-pitches,
+      etc.);
+    - ``source_measure_numbers`` is supplied and the plan references a measure the
+      source lacks, or (when ``require_all_measures``) omits one the source has;
+    - ``measure_durations_by_number`` is supplied and a non-``preserve`` measure's
+      events do not tile the full source duration (see
+      :func:`_validate_measure_timing`).
+
+    ``require_full_measure_coverage`` can be relaxed to allow partial coverage
+    (gaps/short measures) for callers that validate a plan before the exact source
+    durations are known.
     """
     if not isinstance(plan, dict):
         raise ValueError("Simplification plan must be a dictionary.")
@@ -275,6 +302,18 @@ def _validate_measure_timing(
     measure_duration: float,
     require_full_measure_coverage: bool,
 ) -> None:
+    """
+    Ensure a measure's events tile its source duration without gaps or overlaps.
+
+    Events (already sorted by offset) must run contiguously from offset 0: each
+    starts where the previous ended, none extends past the source measure
+    duration. With ``require_full_measure_coverage`` they must also reach exactly
+    the measure end, so silence has to be written as explicit rest events rather
+    than left as an implicit gap -- the rewriter would otherwise produce a short
+    measure and break parity with the source. ``preserve`` measures keep the
+    original LH and are exempt. Comparisons use :data:`TIMING_EPSILON` to tolerate
+    floating-point quarterLength arithmetic.
+    """
     number = measure["number"]
     if measure_duration <= 0:
         raise ValueError(f"Measure {number} has invalid source duration {measure_duration}.")
@@ -306,6 +345,14 @@ def _validate_measure_timing(
 
 
 def _reject_truncation_markers(text: str) -> None:
+    """
+    Reject output the model deliberately truncated to fit its token budget.
+
+    Two tiers: explicit markers (``TRUNCATED``, ``[...continued``) are unambiguous
+    and rejected wherever they appear; a bare ellipsis is only a truncation signal
+    at the very end of the output, since an ellipsis inside a JSON string value
+    (e.g. a ``summary``) is legitimate content.
+    """
     upper_text = text.upper()
     for marker in TRUNCATION_MARKERS:
         if marker.upper() in upper_text:

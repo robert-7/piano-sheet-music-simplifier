@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 """
-music21_simplify_analysis.py
-
 Extract a structured analysis bundle from a MusicXML (or any music21-readable) score
 to assist with generating simplified piano arrangements (keep RH melody exact, simplify LH).
-
-Tested conceptually with: music21==9.7.1
 
 Why this exists (arranger's POV)
 --------------------------------
@@ -35,7 +31,7 @@ prescriptiveLH: Per-measure recommendations (shouldSimplify + targetTexture) for
 
 Usage
 -----
-    python music21_simplify_analysis.py /path/to/file.musicxml --out analysis.json
+    python main.py generate_analysis_of_musicxml /path/to/file.musicxml
 """
 from __future__ import annotations
 
@@ -138,8 +134,8 @@ def _measure_duration_ql(ts: meter.TimeSignature | None) -> float | None:
     """Duration of one bar in quarterLength units for a given time signature."""
     if not ts:
         return None
-    # e.g., 3/4 -> 3 quarters, 6/8 -> 3 quarters (since 6/8 is 3 quarterLength if dotted quarter? careful)
-    # music21's .barDuration.quarterLength handles compound meters properly.
+    # barDuration.quarterLength handles compound meters correctly (e.g. 6/8 -> 3.0),
+    # so we do not compute bar length from the numerator/denominator ourselves.
     return float(ts.barDuration.quarterLength)
 
 def _has_measure_zero(sc: stream.Score) -> bool:
@@ -372,13 +368,11 @@ def extract_metadata(s: stream.Score) -> Metadata:
     """
     Collect meter, tempo, pickup (if anacrusis), and repeats/voltas.
 
-    FIX for your error:
-    -------------------
-    In music21, "volta" brackets are represented as spanners of type
-    spanner.RepeatBracket (not bar.Volta). Attempting to access bar.Volta
-    raises AttributeError on typical installs. We therefore:
-      * Keep bar.Repeat for :|| and ||: (repeat barlines), and
-      * Gather voltas via spanner.RepeatBracket found in the first part.
+    music21 represents volta brackets as ``spanner.RepeatBracket`` objects, not a
+    ``bar.Volta`` class (which does not exist on typical installs and would raise
+    AttributeError). Repeat *barlines* (:|| and ||:) remain ``bar.Repeat``, so the
+    two are gathered separately: repeat barlines from each measure, voltas from the
+    first part's RepeatBracket spanners.
     """
     ts_map: list[TimeSigSpan] = []
     tempo_map: list[TempoSpan] = []
@@ -987,7 +981,8 @@ def build_analysis_bundle(path: str) -> dict[str, Any]:
 def generate_analysis_of_musicxml(musicxml_path: str,
                                   out_dir: str = ".") -> None:
     """
-    Programmatic entry point: build and return the analysis bundle for a MusicXML file.
+    CLI entry point: build the analysis bundle and write it to
+    ``<out_dir>/<stem>_analysis.json``.
     """
     bundle = build_analysis_bundle(musicxml_path)
 

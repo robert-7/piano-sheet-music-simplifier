@@ -55,6 +55,13 @@ def write_simplified_musicxml_from_plan(
 ) -> Path:
     """
     Apply a validated LH simplification plan to the source score and write MusicXML.
+
+    The plan is re-validated here against the source's actual measure numbers and
+    durations (so timing coverage is checked even when the plan was validated
+    earlier without them). The write is atomic: MusicXML goes to a temp file that
+    only replaces ``output_path`` after :func:`validate_musicxml_against_source`
+    confirms part/measure parity, so a parity failure never leaves a half-written
+    output in place.
     """
     source_path = Path(musicxml_path)
     output_path = Path(output_path)
@@ -142,6 +149,16 @@ def _parse_score(path: str | Path) -> Any:
 
 
 def _left_hand_part(score: Any) -> Any:
+    """
+    Return the part that carries the left hand.
+
+    LH-only simplification is defined for a two-staff piano score, so anything
+    other than exactly two parts is rejected. The LH is identified by clef (bass
+    against treble) rather than by staff order, because engravers and OMR tools do
+    not agree on which staff comes first. When neither part carries an
+    unambiguous clef, fall back to the RH-then-LH ordering this pipeline's own
+    fixtures and generated scores use (LH last).
+    """
     parts = list(score.parts)
     if len(parts) != 2:
         raise ValueError(
@@ -155,8 +172,7 @@ def _left_hand_part(score: Any) -> Any:
         return parts[0]
     if isinstance(second_clef, clef_module.BassClef) and isinstance(first_clef, clef_module.TrebleClef):
         return parts[1]
-    # No unambiguous clef signal (e.g. neither part has a clef): fall back to the
-    # RH-then-LH ordering convention used throughout this pipeline's fixtures and inputs.
+    # No unambiguous clef signal: fall back to the RH-then-LH ordering convention.
     return parts[-1]
 
 
@@ -172,6 +188,16 @@ def _measure_numbers_by_part(score: Any) -> list[list[int]]:
 
 
 def _measure_duration_ql(measure: Any, time_signature: Any | None) -> float:
+    """
+    Best-effort sounding duration of one measure, in quarterLength.
+
+    Prefer the time signature's bar duration minus ``paddingLeft``: music21 uses
+    paddingLeft to notate a pickup/anacrusis as a shortened bar, so subtracting it
+    yields the actual event span the plan must cover (a full 4/4 pickup bar with a
+    one-beat anacrusis is 1.0, not 4.0). When there is no time signature, fall back
+    to the measure's highestTime, then to summing note/rest durations, and finally
+    to 4.0 so an empty measure still reports a sane non-zero duration.
+    """
     if time_signature is not None:
         try:
             padding_left = float(getattr(measure, "paddingLeft", 0.0) or 0.0)
@@ -213,12 +239,18 @@ def _event_to_music21_element(event: dict[str, Any]) -> Any:
 
     element.duration = duration_module.Duration(float(event["duration"]))
     try:
+        # MusicXML numbers piano voices per staff; the LH staff conventionally
+        # uses voices 5-8. Tag rewritten LH events as voice 5 so they stay
+        # associated with the lower staff rather than merging into an RH voice.
         element.voice = "5"
     except Exception:
         pass
     return element
 
 
+# music21 is imported lazily through these helpers so importing this module does
+# not pull in music21's (heavy) import at import time -- it is paid only when a
+# rewrite actually runs.
 def _converter() -> Any:
     from music21 import converter
 

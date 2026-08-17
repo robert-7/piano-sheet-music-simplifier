@@ -25,7 +25,7 @@ def generate_simplified_musicxml(
     Generates a simplified MusicXML file from an OpenAI-produced LH plan.
 
     Every run leaves a standardized artifact trail (see ``run_artifacts`` and
-    ``docs/debugging-artifacts.md``): prompt inputs, the raw model output and
+    ``docs/DEBUGGING.md``): prompt inputs, the raw model output and
     reasoning (written *before* validation so a failed run is still inspectable),
     a validation report, the structured plan, the final MusicXML, a simplification
     report, and a ``run_summary.json`` written on both success and failure.
