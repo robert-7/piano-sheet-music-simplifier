@@ -17,6 +17,9 @@ repos:
         description: Forces to replace line ending by the UNIX 'lf' character.
       - id: pretty-format-json
         args: ['--no-sort-keys', '--autofix']
+      - id: file-contents-sorter
+        name: Keep requirements.txt sorted
+        files: ^requirements\.txt$
 
   - repo: https://github.com/sirosen/texthooks
     rev: 0.7.1
@@ -82,8 +85,10 @@ repos:
           - pyright==1.1.411
           - music21==10.5.0
           - openai-agents==0.18.2
-          - python-dotenv==1.2.2
+          - python-dotenv==1.2.3
           - Jinja2==3.1.6
+          - pdf2image==1.17.0
+          - opencv-python-headless==5.0.0.93
 
       # Run the unit test suite. Uses an isolated env (language: python) so it
       # works in CI without the workflow installing requirements.txt.
@@ -95,7 +100,9 @@ repos:
         additional_dependencies:
           - music21==10.5.0
           - openai-agents==0.18.2
-          - python-dotenv==1.2.2
+          - python-dotenv==1.2.3
           - Jinja2==3.1.6
+          - pdf2image==1.17.0
+          - opencv-python-headless==5.0.0.93
         pass_filenames: false
         files: \.py$

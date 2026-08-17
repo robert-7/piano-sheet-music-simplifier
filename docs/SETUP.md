@@ -9,6 +9,7 @@ sudo apt install -y \
     build-essential \
     libffi-dev \
     libssl-dev \
+    poppler-utils \
     pre-commit \
     python3 \
     python-dev \

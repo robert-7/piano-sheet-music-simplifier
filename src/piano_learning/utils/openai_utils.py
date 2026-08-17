@@ -14,13 +14,9 @@ from openai.types.shared_params import Reasoning
 
 logger = logging.getLogger(__name__)
 
-try:
-    import dotenv
-except ImportError:  # pragma: no cover - exercised indirectly in lightweight environments
-    dotenv = None
+import dotenv
 
-if dotenv is not None:
-    dotenv.load_dotenv(dotenv_path=dotenv.find_dotenv(usecwd=True), override=False)
+dotenv.load_dotenv(dotenv_path=dotenv.find_dotenv(usecwd=True), override=False)
 
 
 def _get_required_env(name: str) -> str:

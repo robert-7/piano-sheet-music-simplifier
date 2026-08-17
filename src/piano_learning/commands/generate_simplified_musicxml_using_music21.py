@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
-from music21 import analysis
 from music21 import chord
 from music21 import duration
 from music21 import meter
@@ -31,54 +30,12 @@ def reduce_left_hand_part_to_chords(
     window: Literal["beat", "measure"] = "beat",
 ) -> stream.Part:
     """
-    Reduce an arpeggiated/stirred LH part to block chords.
-
-    Strategy:
-      1) Try music21.analysis reduction (ChordReducer / reduceChords) if present.
-      2) Fallback: aggregate notes per time window (beat or measure) into a chord at the
-         window start with duration equal to the window length.
+    Reduce an arpeggiated/stirred LH part to block chords by aggregating notes per time
+    window (beat or measure) into a chord at the window start, with duration equal to the
+    window length.
 
     Returns a new Part; the original is not modified.
     """
-    # 1) Try music21's analysis reducer if available
-    try:
-        # Prefer analysis.reduction module if present
-        try:
-            from music21.analysis import reduction as m21reduction  # type: ignore
-        except Exception:
-            m21reduction = None
-
-        if m21reduction is not None:
-            # Try ChordReducer first
-            if hasattr(m21reduction, "ChordReducer"):
-                try:
-                    cr = m21reduction.ChordReducer(lh_part)  # type: ignore[attr-defined]
-                    reduced = cr.reduceChords()  # type: ignore[call-arg]
-                    if isinstance(reduced, stream.Part):
-                        return reduced
-                except Exception:
-                    pass
-            # Then try a module-level function reduceChords if exposed
-            if hasattr(m21reduction, "reduceChords"):
-                try:
-                    reduced = m21reduction.reduceChords(lh_part)  # type: ignore[attr-defined]
-                    if isinstance(reduced, stream.Part):
-                        return reduced
-                except Exception:
-                    pass
-        # Some installs expose analysis.reduceChords directly
-        if hasattr(analysis, "reduceChords"):
-            try:
-                reduced = analysis.reduceChords(lh_part)  # type: ignore[attr-defined]
-                if isinstance(reduced, stream.Part):
-                    return reduced
-            except Exception:
-                pass
-    except Exception:
-        # Swallow and continue to fallback
-        pass
-
-    # 2) Fallback: window-based aggregation (beat or measure)
     out = stream.Part()
     out.id = lh_part.id
     out.partName = lh_part.partName or "LH (reduced)"
