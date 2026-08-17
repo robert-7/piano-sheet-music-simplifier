@@ -5,7 +5,7 @@ from typing import Any
 from typing import cast
 from typing import Tuple
 
-import httpx
+import httpx2
 import openai
 from agents import Agent
 from agents import Runner
@@ -56,7 +56,7 @@ def coerce_to_text(value: Any) -> str:
 
 
 def _build_openai_client(
-    timeout: httpx.Timeout,
+    timeout: httpx2.Timeout,
     max_retries: int,
     api_key: str | None = None,
 ) -> openai.OpenAI:
@@ -68,7 +68,7 @@ def _build_openai_client(
 
 
 def _build_async_openai_client(
-    timeout: httpx.Timeout,
+    timeout: httpx2.Timeout,
     max_retries: int,
     api_key: str | None = None,
 ) -> openai.AsyncOpenAI:
@@ -84,7 +84,7 @@ OPENAI_AGENT_MODEL = os.getenv("OPENAI_AGENT_MODEL", "gpt-5.5")
 
 
 def run_openai_response_in_background(
-    timeout: httpx.Timeout,
+    timeout: httpx2.Timeout,
     model: str,
     instructions: str,
     input_text: str,
@@ -149,7 +149,7 @@ def run_openai_response_in_background(
 
 
 def run_openai_response_with_agent(
-    timeout: httpx.Timeout,
+    timeout: httpx2.Timeout,
     model: str,
     instructions: str,
     input_text: str,
