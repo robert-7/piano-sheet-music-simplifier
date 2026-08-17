@@ -111,6 +111,13 @@ as the style reference. Reuse a builder from `tests/fixtures.py` for the score u
 fits; add a new one there if it's likely to be reused. See `docs/TESTING.md` for the full map of
 what's covered and why.
 
+## Documentation & comments
+
+When adding or changing docstrings and comments, follow `docs/DOCUMENTING.md`: document what
+requires understanding (contracts, invariants, domain/library quirks, fallbacks), not what the code
+already says. Keep the signal-to-noise ratio high and convert any historical wording into timeless
+statements of the underlying behavior.
+
 ## Instrumentation (issue #47)
 
 Every run (both backends) emits `<stem>_simplification_report.json` quantifying how much the LH

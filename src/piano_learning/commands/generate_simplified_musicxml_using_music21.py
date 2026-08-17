@@ -196,7 +196,7 @@ def generate_simplified_musicxml_using_music21(musicxml_path: str, out_dir: str 
 
     Leaves the same standardized run trail as the OpenAI backend where it applies:
     the simplified MusicXML, a simplification report, and a ``run_summary.json``
-    (see ``run_artifacts`` and ``docs/debugging-artifacts.md``). This backend is
+    (see ``run_artifacts`` and ``docs/DEBUGGING.md``). This backend is
     fully local, so there are no prompt/model/plan artifacts.
     """
     window = "beat"
