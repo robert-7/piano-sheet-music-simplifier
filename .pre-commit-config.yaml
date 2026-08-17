@@ -17,6 +17,9 @@ repos:
         description: Forces to replace line ending by the UNIX 'lf' character.
       - id: pretty-format-json
         args: ['--no-sort-keys', '--autofix']
+      - id: file-contents-sorter
+        name: Keep requirements.txt sorted
+        files: ^requirements\.txt$
 
   - repo: https://github.com/sirosen/texthooks
     rev: 0.7.1
