@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-import httpx
+import httpx2
 import openai
 
 from src.piano_learning.utils import openai_utils
@@ -23,7 +23,7 @@ class AgentClientTests(unittest.TestCase):
                 mock.patch.object(openai_utils, "Runner") as runner:
             runner.run_sync.return_value = fake_result
             openai_utils.run_openai_response_with_agent(
-                timeout=httpx.Timeout(60.0),
+                timeout=httpx2.Timeout(60.0),
                 model="gpt-5.5",
                 instructions="do it",
                 input_text="<score/>",

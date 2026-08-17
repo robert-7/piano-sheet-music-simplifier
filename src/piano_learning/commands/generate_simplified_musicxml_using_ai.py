@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-import httpx
+import httpx2
 
 from src.piano_learning.commands import generate_analysis_of_musicxml
 from src.piano_learning.utils import musicxml_rewriter
@@ -99,7 +99,7 @@ def generate_simplified_musicxml(
         system_prompt = template_utils.render_template_file(system_tpl, context)
         user_prompt = template_utils.render_template_file(user_tpl, context)
 
-        timeout = httpx.Timeout(900.0, read=900.0, write=120.0, connect=60.0)
+        timeout = httpx2.Timeout(900.0, read=900.0, write=120.0, connect=60.0)
         query = (
             f"{user_prompt}\n\n"
             "Return JSON only. It must validate against this simplification-plan schema:\n"
