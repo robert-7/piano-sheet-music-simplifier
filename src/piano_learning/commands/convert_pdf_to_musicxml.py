@@ -25,4 +25,12 @@ def convert_pdf_to_musicxml(
         logger.info(f"  {p}")
     logger.info(f"Log: {result.log_path}")
 
+    if len(result.outputs) != 1:
+        raise RuntimeError(
+            f"Expected Audiveris to produce a single merged MusicXML file for {pdf_path}, "
+            f"but got {len(result.outputs)}: {', '.join(str(p) for p in result.outputs)}. "
+            "This usually means the PDF was rasterized into per-page images before being "
+            "passed to Audiveris, which exports one book per page."
+        )
+
     return result.outputs[0]

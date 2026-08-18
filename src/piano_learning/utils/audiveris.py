@@ -96,7 +96,7 @@ def run_audiveris(
 def convert_pdf_to_musicxml(
     pdf_path: Path,
     out_dir: Path,
-    prefer_rasterize: bool = True,
+    prefer_rasterize: bool = False,
     dpi: int = 400,
 ) -> ConversionResult:
     """
@@ -104,6 +104,13 @@ def convert_pdf_to_musicxml(
     Strategy:
       1) (Optional) rasterize PDF to PNG at high DPI and pre-process images.
       2) Run Audiveris in batch mode with export on either the images or the PDF.
+
+    Rasterizing splits a multi-page PDF into per-page images, which Audiveris then
+    treats as separate books -- exporting one MusicXML file per page instead of a
+    single merged score. Feeding Audiveris the PDF directly lets it rasterize and
+    binarize internally while keeping all pages in one book/score, so it is the
+    default; rasterizing is opt-in for inputs where the external OpenCV
+    preprocessing is needed (e.g. noisy scans).
     """
     if not pdf_path.exists():
         raise FileNotFoundError(pdf_path)

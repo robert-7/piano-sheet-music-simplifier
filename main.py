@@ -190,7 +190,15 @@ def build_parser() -> argparse.ArgumentParser:
     # --- Sub-parser for convert_pdf_to_musicxml ---
     pdf_parser = subparsers.add_parser("convert_pdf_to_musicxml", help="Convert a PDF to MusicXML using Audiveris.")
     pdf_parser.add_argument("pdf_path", type=Path, help="Path to the input PDF")
-    pdf_parser.add_argument("--no-rasterize", action="store_true", help="Let Audiveris read the PDF directly")
+    pdf_parser.add_argument(
+        "--rasterize",
+        action="store_true",
+        help=(
+            "Rasterize the PDF to per-page images before running Audiveris, instead of letting "
+            "Audiveris read the PDF directly. Only produces a single merged MusicXML file for "
+            "single-page input; multi-page input will emit one file per page."
+        ),
+    )
     pdf_parser.add_argument("--dpi", type=int, default=400, help="DPI for rasterization")
 
     # --- Sub-parser for generate_analysis_of_musicxml ---
@@ -281,7 +289,7 @@ def main():
                 from src.piano_learning.commands import convert_pdf_to_musicxml
 
                 logger.info("Using PDF for MusicXML conversion...")
-                musicxml_path = convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, out_dir, True, False)
+                musicxml_path = convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, out_dir, False, 400)
                 if not musicxml_path:
                     logger.error(f"Error converting PDF {args.pdf_path} to MusicXML. Logs can be found in {out_dir}.")
                     exit(1)
@@ -317,7 +325,7 @@ def main():
     elif args.command == "convert_pdf_to_musicxml":
         from src.piano_learning.commands import convert_pdf_to_musicxml
 
-        convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, args.out_dir, not args.no_rasterize, args.dpi)
+        convert_pdf_to_musicxml.convert_pdf_to_musicxml(args.pdf_path, args.out_dir, args.rasterize, args.dpi)
 
     elif args.command == "generate_analysis_of_musicxml":
         from src.piano_learning.commands import generate_analysis_of_musicxml
