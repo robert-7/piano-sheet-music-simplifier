@@ -14,10 +14,10 @@ class ConvertPdfToMusicxmlTests(unittest.TestCase):
     verify the command wrapper's contract with ``audiveris.convert_pdf_to_musicxml``.
     """
 
-    def test_returns_first_output_on_success(self):
+    def test_returns_single_output_on_success(self):
         with tempfile.TemporaryDirectory() as tmp:
             out_dir = Path(tmp)
-            outputs = [out_dir / "Song.musicxml", out_dir / "Song.2.musicxml"]
+            outputs = [out_dir / "Song.xml"]
             result = ConversionResult(outputs=outputs, log_path=out_dir / "audiveris.log", workspace=out_dir)
 
             with mock.patch.object(
@@ -28,7 +28,7 @@ class ConvertPdfToMusicxmlTests(unittest.TestCase):
                 returned = convert_pdf_to_musicxml.convert_pdf_to_musicxml(
                     pdf_path=Path("Song.pdf"),
                     out_dir=out_dir,
-                    prefer_rasterize=True,
+                    prefer_rasterize=False,
                     dpi=400,
                 )
 
@@ -36,9 +36,29 @@ class ConvertPdfToMusicxmlTests(unittest.TestCase):
             mocked.assert_called_once_with(
                 pdf_path=Path("Song.pdf"),
                 out_dir=out_dir,
-                prefer_rasterize=True,
+                prefer_rasterize=False,
                 dpi=400,
             )
+
+    def test_raises_on_multiple_outputs(self):
+        """A multi-page/multi-book Audiveris result must not silently use only the first page."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp)
+            outputs = [out_dir / "page-001.xml", out_dir / "page-002.xml"]
+            result = ConversionResult(outputs=outputs, log_path=out_dir / "audiveris.log", workspace=out_dir)
+
+            with mock.patch.object(
+                convert_pdf_to_musicxml.audiveris,
+                "convert_pdf_to_musicxml",
+                return_value=result,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "page-001.xml"):
+                    convert_pdf_to_musicxml.convert_pdf_to_musicxml(
+                        pdf_path=Path("Song.pdf"),
+                        out_dir=out_dir,
+                        prefer_rasterize=False,
+                        dpi=400,
+                    )
 
     def test_propagates_audiveris_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
