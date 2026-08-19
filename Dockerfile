@@ -38,6 +38,18 @@ RUN set -eux; \
         fonts-dejavu-core; \
     rm -rf /var/lib/apt/lists/*
 
+# Ubuntu's tesseract-ocr-eng ships LSTM-only language data, but Audiveris drives
+# Tesseract's legacy engine (OEM 0) for score text. Without the combined
+# legacy+LSTM model, OCR fails ("Tesseract (legacy) engine requested, but
+# components are not present in eng.traineddata") and no lines are recognized,
+# so titles, composer, tempo, and lyrics are silently dropped from the MusicXML.
+# Overwrite eng.traineddata with the combined model from the official tessdata
+# repo (pinned) so text recognition works.
+ARG TESSDATA_VERSION=4.1.0
+RUN set -eux; \
+    wget -O "${TESSDATA_PREFIX}/eng.traineddata" \
+        "https://github.com/tesseract-ocr/tessdata/raw/${TESSDATA_VERSION}/eng.traineddata"
+
 # Create and activate a dedicated virtual environment (PEP 668 compliant)
 RUN set -eux; \
     python3 -m venv "$VIRTUAL_ENV"; \

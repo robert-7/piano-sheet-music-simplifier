@@ -3,4 +3,5 @@ music21==10.5.0
 openai-agents==0.21.1
 opencv-python-headless==5.0.0.93
 pdf2image==1.17.0
+pypdf==6.16.1
 python-dotenv==1.2.3
