@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from src.piano_learning.utils import metadata_utils
 from src.piano_learning.utils import simplification_plan
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,9 @@ def write_simplified_musicxml_from_plan(
     apply_plan_to_score(score, normalized_plan)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_output_path = output_path.with_name(f".{output_path.stem}.tmp{output_path.suffix}")
+    # Preserve the source title/composer and drop music21's export placeholders
+    # (source-filename title, "Music21" composer) before writing.
+    metadata_utils.normalize_output_metadata(score, source_name=source_path)
     try:
         score.write("musicxml", fp=str(temporary_output_path))
         validate_musicxml_against_source(source_path, temporary_output_path)

@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 from src.piano_learning.utils import audiveris
+from src.piano_learning.utils import metadata_utils
 
 logger = logging.getLogger(__name__)
 
@@ -33,4 +34,21 @@ def convert_pdf_to_musicxml(
             "passed to Audiveris, which exports one book per page."
         )
 
-    return result.outputs[0]
+    output_path = result.outputs[0]
+
+    # Audiveris only captures title/composer when it can OCR the printed text;
+    # for image-only PDFs (and when OCR is unavailable) it emits none. Backfill
+    # from the PDF's own document properties, but only where Audiveris left the
+    # field blank so any OCR'd value keeps precedence.
+    try:
+        title, composer = metadata_utils.read_pdf_metadata(pdf_path)
+        if metadata_utils.backfill_musicxml_metadata(output_path, title=title, composer=composer):
+            logger.info(
+                "Backfilled MusicXML metadata from PDF document properties (title=%r, composer=%r).",
+                title,
+                composer,
+            )
+    except Exception:
+        logger.warning("Failed to backfill MusicXML metadata from PDF; continuing.", exc_info=True)
+
+    return output_path

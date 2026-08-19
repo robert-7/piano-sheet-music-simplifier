@@ -12,6 +12,7 @@ from music21 import meter
 from music21 import note
 from music21 import stream
 
+from src.piano_learning.utils import metadata_utils
 from src.piano_learning.utils import run_artifacts
 from src.piano_learning.utils import score_utils
 from src.piano_learning.utils import simplification_report
@@ -169,6 +170,9 @@ def generate_simplified_musicxml_using_music21(musicxml_path: str, out_dir: str 
     basename = Path(musicxml_path).stem
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     out_path = run_artifacts.artifact_path(out_dir, basename, "simplified_musicxml")
+    # Preserve the source title/composer and drop music21's export placeholders
+    # (source-filename title, "Music21" composer) before writing.
+    metadata_utils.normalize_output_metadata(s_reduced, source_name=musicxml_path)
     s_reduced.write("musicxml", fp=str(out_path))
     logger.info(f"Wrote simplified MusicXML to {out_path} using music21.")
 

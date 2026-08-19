@@ -88,6 +88,7 @@ repos:
           - python-dotenv==1.2.3
           - Jinja2==3.1.6
           - pdf2image==1.17.0
+          - pypdf==6.16.1
           - opencv-python-headless==5.0.0.93
 
       # Run the unit test suite. Uses an isolated env (language: python) so it
@@ -103,6 +104,7 @@ repos:
           - python-dotenv==1.2.3
           - Jinja2==3.1.6
           - pdf2image==1.17.0
+          - pypdf==6.16.1
           - opencv-python-headless==5.0.0.93
         pass_filenames: false
         files: \.py$
