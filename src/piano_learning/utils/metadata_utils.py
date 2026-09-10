@@ -57,6 +57,17 @@ def clean_title(raw: str | None) -> str | None:
     return text or None
 
 
+def title_from_filename(path: str | Path) -> str | None:
+    """Derive a display title from a source file name, as a last-resort fallback.
+
+    Used only when neither OCR nor the PDF's document properties yielded a title.
+    Underscores -- common in downloaded score file names like
+    ``Final_Fantasy_X_-_Besaid_Island.pdf`` -- become spaces before the shared
+    ``clean_title`` normalization (which also drops the file extension).
+    """
+    return clean_title(Path(path).stem.replace("_", " "))
+
+
 def read_pdf_metadata(pdf_path: str | Path) -> tuple[str | None, str | None]:
     """Return ``(title, composer)`` from a PDF's document-info dictionary.
 

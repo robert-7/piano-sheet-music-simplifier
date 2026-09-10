@@ -320,7 +320,9 @@ def main():
                 logger.error(f"Error generating PDFs from {simplified_musicxml_path}. Logs can be found in {out_dir}.")
                 exit(1)
         except Exception as e:
-            logger.error(f"Error processing {args.pdf_path}. Logs can be found in {out_dir}: {e}")
+            # Log the full traceback, not just str(e): bare exceptions like KeyError('2')
+            # are meaningless without the stack that produced them.
+            logger.exception(f"Error processing {args.pdf_path}. Logs can be found in {out_dir}: {e}")
 
     elif args.command == "convert_pdf_to_musicxml":
         from src.piano_learning.commands import convert_pdf_to_musicxml
