@@ -71,6 +71,33 @@ class GenerateSimplifiedMusicxmlUsingMusic21Tests(unittest.TestCase):
             lh_events = list(output_score.parts[-1].flatten().notesAndRests)
             self.assertEqual(len(lh_events), 8)
 
+    def test_mismatched_voice_ids_do_not_crash_export(self):
+        # Regression: Audiveris output whose voices overshoot the barline while the next
+        # measure lacks the same voice id used to crash music21 export with KeyError('2')
+        # (makeRests/makeTies looking up mNext.voices[vId]). The backend must dissolve
+        # such voices and complete instead of raising.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            input_path = tmp_path / "input.musicxml"
+            # makeNotation=False mirrors how Audiveris writes this file directly: the raw,
+            # un-notated voices reach disk without music21's export pipeline sanitizing them.
+            fixtures.mismatched_voice_ids_score().write(
+                "musicxml", fp=str(input_path), makeNotation=False
+            )
+            out_dir = tmp_path / "out"
+
+            result_path = music21_cmd.generate_simplified_musicxml_using_music21(
+                str(input_path), out_dir=str(out_dir)
+            )
+
+            self.assertIsNotNone(result_path)
+            self.assertTrue(Path(result_path).exists())
+
+            # RH pitches must survive the voice dissolution.
+            output_score = score_utils.load_score(result_path)
+            rh_notes = list(output_score.parts[0].flatten().notes)
+            self.assertEqual([n.pitch.nameWithOctave for n in rh_notes], ["C5", "D5"])
+
     def test_walking_bass_line_is_left_unchanged(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

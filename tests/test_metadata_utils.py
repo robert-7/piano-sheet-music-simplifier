@@ -49,6 +49,17 @@ class CleanTitleTests(unittest.TestCase):
         self.assertEqual(metadata_utils.clean_title("Clair de Lune"), "Clair de Lune")
 
 
+class TitleFromFilenameTests(unittest.TestCase):
+    def test_underscores_become_spaces_and_extension_dropped(self):
+        self.assertEqual(
+            metadata_utils.title_from_filename("user/input/Final_Fantasy_X_-_Besaid_Island.pdf"),
+            "Final Fantasy X - Besaid Island",
+        )
+
+    def test_plain_name_is_kept(self):
+        self.assertEqual(metadata_utils.title_from_filename("Clair de Lune.pdf"), "Clair de Lune")
+
+
 class ReadPdfMetadataTests(unittest.TestCase):
     def _make_pdf(self, tmp: Path, metadata: dict | None) -> Path:
         from pypdf import PdfWriter

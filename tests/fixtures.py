@@ -116,6 +116,51 @@ def pickup_measure_score() -> stream.Score:
     return score
 
 
+def mismatched_voice_ids_score() -> stream.Score:
+    """
+    A 2-measure score reproducing an Audiveris/OMR pathology that crashes music21 export.
+
+    Measure 1's RH carries an explicit voice ``'2'`` whose content overshoots the barline
+    (music21 gives such voices an over-long rest when the source lacks a usable time
+    signature -- Audiveris emits exactly this and warns "No target duration ... check time
+    signatures"). Measure 2 has voices too, but none with id ``'2'``. On export music21's
+    ``makeRests``/``makeTies`` tries ``mNext.voices['2']`` to tie the overshooting rest across
+    the barline and raises ``KeyError('2')``. See ``score_utils.dissolve_voices``.
+    """
+    score = stream.Score()
+    rh = stream.Part()
+    lh = stream.Part()
+
+    m1_rh = stream.Measure(number=1)
+    m1_rh.timeSignature = meter.TimeSignature("4/4")
+    v1 = stream.Voice(id="1")
+    v1.insert(0, note.Note("C5", quarterLength=4.0))
+    v2 = stream.Voice(id="2")
+    # Overshoots the 4/4 bar (a breve rest, a single notatable symbol) so makeTies must
+    # bridge into the next measure's voice '2'.
+    v2.insert(0, note.Rest(quarterLength=8.0))
+    m1_rh.insert(0, v1)
+    m1_rh.insert(0, v2)
+    rh.append(m1_rh)
+
+    m2_rh = stream.Measure(number=2)
+    v1b = stream.Voice(id="1")
+    v1b.insert(0, note.Note("D5", quarterLength=4.0))
+    m2_rh.insert(0, v1b)
+    rh.append(m2_rh)
+
+    for number in (1, 2):
+        lh_measure = stream.Measure(number=number)
+        if number == 1:
+            lh_measure.timeSignature = meter.TimeSignature("4/4")
+        lh_measure.insert(0, note.Note("C3", quarterLength=4.0))
+        lh.append(lh_measure)
+
+    score.append(rh)
+    score.append(lh)
+    return score
+
+
 def score_with_repeat_barlines() -> stream.Score:
     """A 2-measure score bracketed by a start repeat on measure 1 and an end repeat on measure 2."""
     score = stream.Score()

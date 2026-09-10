@@ -42,6 +42,11 @@ def convert_pdf_to_musicxml(
     # field blank so any OCR'd value keeps precedence.
     try:
         title, composer = metadata_utils.read_pdf_metadata(pdf_path)
+        # Last resort when neither OCR nor PDF document properties yielded a title:
+        # the source file name is usually the piece name. Precedence still holds --
+        # backfill only writes fields Audiveris left blank, so any OCR'd title wins.
+        if not title:
+            title = metadata_utils.title_from_filename(pdf_path)
         if metadata_utils.backfill_musicxml_metadata(output_path, title=title, composer=composer):
             logger.info(
                 "Backfilled MusicXML metadata from PDF document properties (title=%r, composer=%r).",

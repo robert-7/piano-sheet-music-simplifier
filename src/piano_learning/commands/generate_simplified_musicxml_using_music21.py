@@ -163,6 +163,10 @@ def generate_simplified_musicxml_using_music21(musicxml_path: str, out_dir: str 
 
     s = score_utils.load_score(musicxml_path)
 
+    # OMR sources (Audiveris) carry inconsistent per-measure voices that crash music21's
+    # export (see score_utils.dissolve_voices). Flatten them before touching or writing the score.
+    score_utils.dissolve_voices(s)
+
     # Reduce LH to block chords
     s_reduced = reduce_left_hand_in_score_to_chords(s, window=window)
 
